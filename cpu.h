@@ -75,8 +75,8 @@ typedef struct {
 	u8_t *sp;
 	u4_t *flags;
 
-	timestamp_t *clk_timer_timestamp;
-	timestamp_t *prog_timer_timestamp;
+	u32_t *clk_timer_timestamp;
+	u32_t *prog_timer_timestamp;
 	bool_t *prog_timer_enabled;
 	u8_t *prog_timer_data;
 	u8_t *prog_timer_rld;

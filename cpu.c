@@ -23,8 +23,8 @@
 
 #define TICK_PERIOD				30518 // 1/32,768 ns
 
-#define TIMER_1HZ_PERIOD			1000000 // us
-#define TIMER_256HZ_PERIOD			3906 // us
+#define TIMER_1HZ_PERIOD			32768 // in ticks
+#define TIMER_256HZ_PERIOD			128 // in ticks
 
 #define MASK_4B					0xF00
 #define MASK_6B					0xFC0
@@ -121,11 +121,13 @@ static breakpoint_t *g_breakpoints = NULL;
 
 static u32_t call_depth = 0;
 
-static timestamp_t clk_timer_timestamp = 0;
-static timestamp_t prog_timer_timestamp = 0;
+static u32_t clk_timer_timestamp = 0; // in ticks
+static u32_t prog_timer_timestamp = 0; // in ticks
 static bool_t prog_timer_enabled = 0;
 static u8_t prog_timer_data = 0;
 static u8_t prog_timer_rld = 0;
+
+static u32_t tick_counter = 0;
 
 static u8_t speed_ratio = 1;
 
@@ -472,7 +474,7 @@ static void set_io(u12_t n, u4_t v)
 			}
 
 			if ((v & 0x1) && !prog_timer_enabled) {
-				prog_timer_timestamp = g_hal->get_timestamp();
+				prog_timer_timestamp = tick_counter;
 			}
 
 			prog_timer_enabled = v & 0x1;
@@ -1521,18 +1523,20 @@ static void wait_for_cycles(timestamp_t since, u8_t cycles) {
 	timestamp_t expected = (cycles * TICK_PERIOD)/(1000 * speed_ratio);
 	timestamp_t remaining = (expected > elapsed) ? (expected - elapsed) : 0;
 
+	tick_counter += cycles;
+
 	g_hal->usleep(remaining);
 }
 
 static void process_interrupts(void)
 {
 	u8_t i;
-	timestamp_t ticks;
+	timestamp_t ts;
 
 	/* Process interrupts in priority order */
 	for (i = 0; i < INT_SLOT_NUM; i++) {
 		if (interrupts[i].triggered) {
-			ticks = g_hal->get_timestamp();
+			ts = g_hal->get_timestamp();
 
 			//printf("IT %u !\n", i);
 			SET_M(sp - 1, PCP);
@@ -1544,7 +1548,7 @@ static void process_interrupts(void)
 			pc = TO_PC(PCB, 1, interrupts[i].vector);
 			call_depth++;
 
-			wait_for_cycles(ticks, 12);
+			wait_for_cycles(ts, 12);
 			interrupts[i].triggered = 0;
 		}
 	}
@@ -1623,7 +1627,6 @@ int cpu_step(void)
 	u12_t op;
 	u8_t i;
 	breakpoint_t *bp = g_breakpoints;
-	timestamp_t ticks;
 	static timestamp_t ref_ts;
 	static u8_t previous_op;
 
@@ -1674,26 +1677,25 @@ int cpu_step(void)
 		np = (pc >> 8) & 0x1F;
 	}
 
-	/* Handler timers */
-	ticks = g_hal->get_timestamp();
-	if (ticks - clk_timer_timestamp >= TIMER_1HZ_PERIOD/speed_ratio) {
+	/* Handler timers using the internal tick counter */
+	if (tick_counter - clk_timer_timestamp >= TIMER_1HZ_PERIOD) {
 		do {
-			clk_timer_timestamp += TIMER_1HZ_PERIOD/speed_ratio;
-		} while (ticks - clk_timer_timestamp >= TIMER_1HZ_PERIOD/speed_ratio);
+			clk_timer_timestamp += TIMER_1HZ_PERIOD;
+		} while (tick_counter - clk_timer_timestamp >= TIMER_1HZ_PERIOD);
 
 		generate_interrupt(INT_CLOCK_TIMER_SLOT, 3);
 	}
 
-	if (prog_timer_enabled && ticks - prog_timer_timestamp >= TIMER_256HZ_PERIOD/speed_ratio) {
+	if (prog_timer_enabled && tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD) {
 		do {
-			prog_timer_timestamp += TIMER_256HZ_PERIOD/speed_ratio;
+			prog_timer_timestamp += TIMER_256HZ_PERIOD;
 			prog_timer_data--;
 
 			if (prog_timer_data == 0) {
 				prog_timer_data = prog_timer_rld;
 				generate_interrupt(INT_PROG_TIMER_SLOT, 0);
 			}
-		} while (ticks - prog_timer_timestamp >= TIMER_256HZ_PERIOD/speed_ratio);
+		} while (tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD);
 	}
 
 	/* Check if there is any pending interrupt */
