@@ -1519,13 +1519,21 @@ static op_t ops[] = {
 };
 
 static void wait_for_cycles(timestamp_t since, u8_t cycles) {
-	timestamp_t elapsed = g_hal->get_timestamp() - since;
-	timestamp_t expected = (cycles * TICK_PERIOD)/(1000 * speed_ratio);
-	timestamp_t remaining = (expected > elapsed) ? (expected - elapsed) : 0;
+	timestamp_t elapsed, expected;
 
 	tick_counter += cycles;
 
-	g_hal->usleep(remaining);
+	if (speed_ratio == 0) {
+		/* Emulation will be as fast as possible */
+		return;
+	}
+
+	elapsed = g_hal->get_timestamp() - since;
+	expected = (cycles * TICK_PERIOD)/(1000 * speed_ratio);
+
+	if (expected > elapsed) {
+		g_hal->usleep(expected - elapsed);
+	}
 }
 
 static void process_interrupts(void)
