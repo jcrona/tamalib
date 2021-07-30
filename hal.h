@@ -55,7 +55,7 @@ typedef struct {
 	void (*log)(log_level_t level, char *buff, ...);
 
 	/* Clock related functions
-	 * NOTE: An accuracy of ~10 us is required for a cycle accurate emulation.
+	 * NOTE: An accuracy of ~30 us is required for a cycle accurate emulation.
 	 */
 	void (*usleep)(timestamp_t us);
 	timestamp_t (*get_timestamp)(void);
