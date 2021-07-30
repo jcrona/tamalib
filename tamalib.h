@@ -37,7 +37,7 @@
 
 
 void tamalib_release(void);
-bool_t tamalib_init(u12_t *program, breakpoint_t *breakpoints);
+bool_t tamalib_init(const u12_t *program, breakpoint_t *breakpoints);
 
 void tamalib_register_hal(hal_t *hal);
 

@@ -30,7 +30,7 @@ static timestamp_t screen_ts = 0;
 hal_t *g_hal;
 
 
-bool_t tamalib_init(u12_t *program, breakpoint_t *breakpoints)
+bool_t tamalib_init(const u12_t *program, breakpoint_t *breakpoints)
 {
 	bool_t res = 0;
 
