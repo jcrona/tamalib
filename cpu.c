@@ -1405,7 +1405,7 @@ static void op_not_cb(u8_t arg0, u8_t arg1)
 }
 
 /* The E0C6S46 supported instructions */
-static op_t ops[] = {
+static const op_t ops[] = {
 	{"PSET #0x%02X            "  , 0xE40, MASK_7B , 0, 0    , 5 , &op_pset_cb}, // PSET
 	{"JP   #0x%02X            "  , 0x000, MASK_4B , 0, 0    , 5 , &op_jp_cb}, // JP
 	{"JP   C #0x%02X          "  , 0x200, MASK_4B , 0, 0    , 5 , &op_jp_c_cb}, // JP_C
