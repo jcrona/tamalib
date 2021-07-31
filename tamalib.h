@@ -24,8 +24,6 @@
 #include "hw.h"
 #include "hal.h"
 
-#define FRAMERATE					30 // fps
-
 #define tamalib_set_button(btn, state)			hw_set_button(btn, state)
 
 #define tamalib_set_speed(speed)			cpu_set_speed(speed)
@@ -38,6 +36,9 @@
 
 void tamalib_release(void);
 bool_t tamalib_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq);
+
+void tamalib_set_framerate(u8_t framerate);
+u8_t tamalib_get_framerate(void);
 
 void tamalib_register_hal(hal_t *hal);
 

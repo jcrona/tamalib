@@ -22,12 +22,16 @@
 #include "cpu.h"
 #include "hal.h"
 
+#define DEFAULT_FRAMERATE				30 // fps
+
 static bool_t step_by_step_en = 0;
 static bool_t is_paused = 0;
 
 static timestamp_t screen_ts = 0;
 
 static u32_t ts_freq;
+
+static u8_t g_framerate = DEFAULT_FRAMERATE;
 
 hal_t *g_hal;
 
@@ -48,6 +52,16 @@ void tamalib_release(void)
 {
 	hw_release();
 	cpu_release();
+}
+
+void tamalib_set_framerate(u8_t framerate)
+{
+	g_framerate = framerate;
+}
+
+u8_t tamalib_get_framerate(void)
+{
+	return g_framerate;
 }
 
 void tamalib_register_hal(hal_t *hal)
@@ -85,9 +99,9 @@ void tamalib_mainloop(void)
 	while (!g_hal->handler()) {
 		tamalib_step();
 
-		/* Update the screen @ FRAMERATE fps */
+		/* Update the screen @ g_framerate fps */
 		ts = g_hal->get_timestamp();
-		if (ts - screen_ts >= ts_freq/FRAMERATE) {
+		if (ts - screen_ts >= ts_freq/g_framerate) {
 			screen_ts = ts;
 			g_hal->update_screen();
 		}
