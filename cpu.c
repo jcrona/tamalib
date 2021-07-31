@@ -128,9 +128,8 @@ static u8_t prog_timer_data = 0;
 static u8_t prog_timer_rld = 0;
 
 static u32_t tick_counter = 0;
-
+static u32_t ts_freq;
 static u8_t speed_ratio = 1;
-
 static timestamp_t ref_ts;
 
 static state_t cpu_state = {
@@ -1530,7 +1529,7 @@ static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
 		return g_hal->get_timestamp();
 	}
 
-	deadline = since + (cycles * 1000000)/(TICK_FREQUENCY * speed_ratio);
+	deadline = since + (cycles * ts_freq)/(TICK_FREQUENCY * speed_ratio);
 	g_hal->sleep_until(deadline);
 
 	return deadline;
@@ -1594,7 +1593,7 @@ static void print_state(u8_t op_num, u12_t op, u13_t addr)
 	g_hal->log(LOG_CPU, " - PC = 0x%04X, SP = 0x%02X, NP = 0x%02X, X = 0x%03X, Y = 0x%03X, A = 0x%X, B = 0x%X, F = 0x%X\n", pc, sp, np, x, y, a, b, flags);
 }
 
-bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints)
+bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
 {
 	u13_t i;
 
@@ -1620,6 +1619,7 @@ bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints)
 	g_program = program;
 	g_breakpoints = breakpoints;
 
+	ts_freq = freq;
 	ref_ts = g_hal->get_timestamp();
 
 	return 0;

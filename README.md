@@ -23,7 +23,7 @@ tamalib_register_hal(&my_hal);
 /* ... */
 
 /* Initialize TamaLIB */
-tamalib_init(my_program, my_breakpoints); // my_breakpoints can be NULL
+tamalib_init(my_program, my_breakpoints, 1000000); // my_breakpoints can be NULL, 1000000 means that timestamps will be expressed in us
 
 /* ... */
 

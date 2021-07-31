@@ -27,15 +27,19 @@ static bool_t is_paused = 0;
 
 static timestamp_t screen_ts = 0;
 
+static u32_t ts_freq;
+
 hal_t *g_hal;
 
 
-bool_t tamalib_init(const u12_t *program, breakpoint_t *breakpoints)
+bool_t tamalib_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
 {
 	bool_t res = 0;
 
-	res |= cpu_init(program, breakpoints);
+	res |= cpu_init(program, breakpoints, freq);
 	res |= hw_init();
+
+	ts_freq = freq;
 
 	return res;
 }
@@ -83,7 +87,7 @@ void tamalib_mainloop(void)
 
 		/* Update the screen @ FRAMERATE fps */
 		ts = g_hal->get_timestamp();
-		if (ts - screen_ts >= 1000000/FRAMERATE) {
+		if (ts - screen_ts >= ts_freq/FRAMERATE) {
 			screen_ts = ts;
 			g_hal->update_screen();
 		}

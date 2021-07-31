@@ -55,8 +55,8 @@ typedef struct {
 	void (*log)(log_level_t level, char *buff, ...);
 
 	/* Clock related functions
-	 * NOTE: Timestamps are expected in us, an accuracy of ~30 us is required for
-	 * a cycle accurate emulation.
+	 * NOTE: Timestamps granularity is configured with tamalib_init(), an accuracy
+	 * of ~30 us (1/32768) is required for a cycle accurate emulation.
 	 */
 	void (*sleep_until)(timestamp_t ts);
 	timestamp_t (*get_timestamp)(void);
