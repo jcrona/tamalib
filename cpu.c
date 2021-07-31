@@ -1521,7 +1521,7 @@ static const op_t ops[] = {
 };
 
 static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
-	timestamp_t elapsed, expected;
+	timestamp_t deadline;
 
 	tick_counter += cycles;
 
@@ -1530,14 +1530,10 @@ static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
 		return g_hal->get_timestamp();
 	}
 
-	elapsed = g_hal->get_timestamp() - since;
-	expected = (cycles * TICK_PERIOD)/(1000 * speed_ratio);
+	deadline = since + (cycles * TICK_PERIOD)/(1000 * speed_ratio);
+	g_hal->sleep_until(deadline);
 
-	if (expected > elapsed) {
-		g_hal->usleep(expected - elapsed);
-	}
-
-	return since + expected;
+	return deadline;
 }
 
 static void process_interrupts(void)
