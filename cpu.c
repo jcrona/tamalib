@@ -131,6 +131,8 @@ static u32_t tick_counter = 0;
 
 static u8_t speed_ratio = 1;
 
+static timestamp_t ref_ts;
+
 static state_t cpu_state = {
 	.pc = &pc,
 	.x = &x,
@@ -1623,6 +1625,8 @@ bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints)
 	g_program = program;
 	g_breakpoints = breakpoints;
 
+	ref_ts = g_hal->get_timestamp();
+
 	return 0;
 }
 
@@ -1635,8 +1639,7 @@ int cpu_step(void)
 	u12_t op;
 	u8_t i;
 	breakpoint_t *bp = g_breakpoints;
-	static timestamp_t ref_ts;
-	static u8_t previous_op;
+	static u8_t previous_cycles = 0;
 
 	op = g_program[pc];
 
@@ -1661,7 +1664,7 @@ int cpu_step(void)
 	 * NOTE: For better accuracy, the final wait should happen here, however
 	 * the downside is that all interrupts will likely be delayed by one OP
 	 */
-	wait_for_cycles(ref_ts, ops[previous_op].cycles);
+	wait_for_cycles(ref_ts, previous_cycles);
 
 	ref_ts = g_hal->get_timestamp();
 
@@ -1678,7 +1681,7 @@ int cpu_step(void)
 
 	/* Prepare for the next instruction */
 	pc = next_pc;
-	previous_op = i;
+	previous_cycles = ops[i].cycles;
 
 	if (i > 0) {
 		/* OP code is not PSET, reset NP */
