@@ -21,7 +21,7 @@
 #include "hw.h"
 #include "hal.h"
 
-#define TICK_PERIOD				30518 // 1/32,768 ns
+#define TICK_FREQUENCY				32768 // Hz
 
 #define TIMER_1HZ_PERIOD			32768 // in ticks
 #define TIMER_256HZ_PERIOD			128 // in ticks
@@ -1530,7 +1530,7 @@ static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
 		return g_hal->get_timestamp();
 	}
 
-	deadline = since + (cycles * TICK_PERIOD)/(1000 * speed_ratio);
+	deadline = since + (cycles * 1000000)/(TICK_FREQUENCY * speed_ratio);
 	g_hal->sleep_until(deadline);
 
 	return deadline;
