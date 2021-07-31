@@ -1520,14 +1520,14 @@ static const op_t ops[] = {
 	{NULL, 0, 0, 0, 0, 0, NULL},
 };
 
-static void wait_for_cycles(timestamp_t since, u8_t cycles) {
+static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
 	timestamp_t elapsed, expected;
 
 	tick_counter += cycles;
 
 	if (speed_ratio == 0) {
 		/* Emulation will be as fast as possible */
-		return;
+		return g_hal->get_timestamp();
 	}
 
 	elapsed = g_hal->get_timestamp() - since;
@@ -1536,18 +1536,17 @@ static void wait_for_cycles(timestamp_t since, u8_t cycles) {
 	if (expected > elapsed) {
 		g_hal->usleep(expected - elapsed);
 	}
+
+	return since + expected;
 }
 
 static void process_interrupts(void)
 {
 	u8_t i;
-	timestamp_t ts;
 
 	/* Process interrupts in priority order */
 	for (i = 0; i < INT_SLOT_NUM; i++) {
 		if (interrupts[i].triggered) {
-			ts = g_hal->get_timestamp();
-
 			//printf("IT %u !\n", i);
 			SET_M(sp - 1, PCP);
 			SET_M(sp - 2, PCSH);
@@ -1558,7 +1557,7 @@ static void process_interrupts(void)
 			pc = TO_PC(PCB, 1, interrupts[i].vector);
 			call_depth++;
 
-			wait_for_cycles(ts, 12);
+			ref_ts = wait_for_cycles(ref_ts, 12);
 			interrupts[i].triggered = 0;
 		}
 	}
@@ -1664,9 +1663,7 @@ int cpu_step(void)
 	 * NOTE: For better accuracy, the final wait should happen here, however
 	 * the downside is that all interrupts will likely be delayed by one OP
 	 */
-	wait_for_cycles(ref_ts, previous_cycles);
-
-	ref_ts = g_hal->get_timestamp();
+	ref_ts = wait_for_cycles(ref_ts, previous_cycles);
 
 	/* Process the OP code */
 	if (ops[i].cb != NULL) {
