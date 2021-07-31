@@ -3,8 +3,9 @@
 
 ## Synopsis
 
-TamaLib is a hardware agnostic Tamagotchi P1 emulation library built from scratch. It is self-contained and aims at running on any platform powerful enough, from STM32 MCUs to desktop computers, thus spreading virtual life across the digital world.
+TamaLib is a hardware agnostic Tamagotchi P1 emulation library built from scratch. It is self-contained and aims at running on any platform powerful enough, from microcontrollers (MCUs) to desktop computers, thus spreading virtual life across the digital world.
 
+So far, it has been successfully implemented on desktop computers (check out [TamaTool](https://github.com/jcrona/tamatool/) for more information) and on an STM32F072 MCU based board.
 
 ## Importing TamaLIB
 
@@ -27,7 +28,7 @@ tamalib_init(my_program, my_breakpoints, 1000000); // my_breakpoints can be NULL
 
 /* ... */
 
-/* Enter the TamaLIB loop */
+/* Enter TamaLIB's loop */
 tamalib_mainloop();
 
 /* ... */
@@ -50,7 +51,7 @@ TamaLIB is distributed under the GPLv2 license. See the LICENSE file for more in
 ## Hardware information
 
 The Tamagotchi P1 is based on an E0C6S46 Epson MCU, and runs at 32,768 kHz. Its LCD is 32x16 B/W pixels, with 8 icons.
-To my knowledge, the ROM available online has been extracted from a high-res picture of a die. The ROM mask was clear enough to be optically read. The pictures can be seen [there](https://siliconpr0n.org/map/bandai/tamagotchi-v1/)(thx asterick for the link !).  
+To my knowledge, the ROM available online has been extracted from a high-res picture of a die. The ROM mask was clear enough to be optically read. The pictures can be seen [there](https://siliconpr0n.org/map/bandai/tamagotchi-v1/) (thx asterick for the link !).  
 I would love to see the same work done on a P2 and add support for it in TamaLIB/TamaTool !
 
 __  
