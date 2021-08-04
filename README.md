@@ -5,7 +5,7 @@
 
 TamaLib is a hardware agnostic Tamagotchi P1 emulation library built from scratch. It is self-contained and aims at running on any platform powerful enough, from microcontrollers (MCUs) to desktop computers, thus spreading virtual life across the digital world.
 
-So far, it has been successfully implemented on desktop computers (check out [TamaTool](https://github.com/jcrona/tamatool/) for more information) and on an STM32F072 MCU based board.
+So far, it has been successfully implemented on desktop computers (check out [TamaTool](https://github.com/jcrona/tamatool/) for more information) and on an STM32F072 MCU based board (check out [MCUGotchi](https://github.com/jcrona/mcugotchi/) for more information).
 
 ## Importing TamaLIB
 
