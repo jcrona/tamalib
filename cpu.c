@@ -1681,7 +1681,7 @@ int cpu_step(void)
 		np = (pc >> 8) & 0x1F;
 	}
 
-	/* Handler timers using the internal tick counter */
+	/* Handle timers using the internal tick counter */
 	if (tick_counter - clk_timer_timestamp >= TIMER_1HZ_PERIOD) {
 		do {
 			clk_timer_timestamp += TIMER_1HZ_PERIOD;
