@@ -74,6 +74,7 @@ void tamalib_set_exec_mode(exec_mode_t mode)
 {
 	exec_mode = mode;
 	step_depth = cpu_get_depth();
+	cpu_sync_ref_timestamp();
 }
 
 void tamalib_step(void)

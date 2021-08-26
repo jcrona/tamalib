@@ -236,6 +236,11 @@ void cpu_set_input_pin(pin_t pin, pin_state_t state)
 	}
 }
 
+void cpu_sync_ref_timestamp(void)
+{
+	ref_ts = g_hal->get_timestamp();
+}
+
 static u4_t get_io(u12_t n)
 {
 	u4_t tmp;
@@ -1625,7 +1630,7 @@ bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
 	g_breakpoints = breakpoints;
 
 	ts_freq = freq;
-	ref_ts = g_hal->get_timestamp();
+	cpu_sync_ref_timestamp();
 
 	return 0;
 }
