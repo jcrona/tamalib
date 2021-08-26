@@ -1503,7 +1503,7 @@ static const op_t ops[] = {
 	{"ADD  R(#0x%02X) Q(#0x%02X)", 0xA80, MASK_8B , 2, 0x00C, 7 , &op_add_r_q_cb}, // ADD_R_Q
 	{"ADC  R(#0x%02X) #0x%02X   ", 0xC40, MASK_6B , 4, 0x030, 7 , &op_adc_r_i_cb}, // ADC_R_I
 	{"ADC  R(#0x%02X) Q(#0x%02X)", 0xA90, MASK_8B , 2, 0x00C, 7 , &op_adc_r_q_cb}, // ADC_R_Q
-	{"SUB                   "    , 0xAA0, MASK_8B , 2, 0x00C, 7 , &op_sub_cb}, // SUB
+	{"SUB  R(#0x%02X) Q(#0x%02X)", 0xAA0, MASK_8B , 2, 0x00C, 7 , &op_sub_cb}, // SUB
 	{"SBC  R(#0x%02X) #0x%02X   ", 0xB40, MASK_6B , 4, 0x030, 7 , &op_sbc_r_i_cb}, // SBC_R_I
 	{"SBC  R(#0x%02X) Q(#0x%02X)", 0xAB0, MASK_8B , 2, 0x00C, 7 , &op_sbc_r_q_cb}, // SBC_R_Q
 	{"AND  R(#0x%02X) #0x%02X   ", 0xC80, MASK_6B , 4, 0x030, 7 , &op_and_r_i_cb}, // AND_R_I
@@ -1516,15 +1516,15 @@ static const op_t ops[] = {
 	{"CP   R(#0x%02X) Q(#0x%02X)", 0xF00, MASK_8B , 2, 0x00C, 7 , &op_cp_r_q_cb}, // CP_R_Q
 	{"FAN  R(#0x%02X) #0x%02X   ", 0xD80, MASK_6B , 4, 0x030, 7 , &op_fan_r_i_cb}, // FAN_R_I
 	{"FAN  R(#0x%02X) Q(#0x%02X)", 0xF10, MASK_8B , 2, 0x00C, 7 , &op_fan_r_q_cb}, // FAN_R_Q
-	{"RLC                   "    , 0xAF0, MASK_8B , 0, 0    , 7 , &op_rlc_cb}, // RLC
-	{"RRC                   "    , 0xE8C, MASK_10B, 0, 0    , 5 , &op_rrc_cb}, // RRC
+	{"RLC  R(#0x%02X)         "  , 0xAF0, MASK_8B , 0, 0    , 7 , &op_rlc_cb}, // RLC
+	{"RRC  R(#0x%02X)         "  , 0xE8C, MASK_10B, 0, 0    , 5 , &op_rrc_cb}, // RRC
 	{"INC  M(#0x%02X)         "  , 0xF60, MASK_8B , 0, 0    , 7 , &op_inc_mn_cb}, // INC_MN
 	{"DEC  M(#0x%02X)         "  , 0xF70, MASK_8B , 0, 0    , 7 , &op_dec_mn_cb}, // DEC_MN
-	{"ACPX                  "    , 0xF28, MASK_10B, 0, 0    , 7 , &op_acpx_cb}, // ACPX
-	{"ACPY                  "    , 0xF2C, MASK_10B, 0, 0    , 7 , &op_acpy_cb}, // ACPY
-	{"SCPX                  "    , 0xF38, MASK_10B, 0, 0    , 7 , &op_scpx_cb}, // SCPX
-	{"SCPY                  "    , 0xF3C, MASK_10B, 0, 0    , 7 , &op_scpy_cb}, // SCPY
-	{"NOT                   "    , 0xD0F, 0xFCF   , 4, 0    , 7 , &op_not_cb}, // NOT
+	{"ACPX R(#0x%02X)         "  , 0xF28, MASK_10B, 0, 0    , 7 , &op_acpx_cb}, // ACPX
+	{"ACPY R(#0x%02X)         "  , 0xF2C, MASK_10B, 0, 0    , 7 , &op_acpy_cb}, // ACPY
+	{"SCPX R(#0x%02X)         "  , 0xF38, MASK_10B, 0, 0    , 7 , &op_scpx_cb}, // SCPX
+	{"SCPY R(#0x%02X)         "  , 0xF3C, MASK_10B, 0, 0    , 7 , &op_scpy_cb}, // SCPY
+	{"NOT  R(#0x%02X)         "  , 0xD0F, 0xFCF   , 4, 0    , 7 , &op_not_cb}, // NOT
 
 	{NULL, 0, 0, 0, 0, 0, NULL},
 };
