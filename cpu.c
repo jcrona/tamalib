@@ -201,6 +201,11 @@ state_t * cpu_get_state(void)
 	return &cpu_state;
 }
 
+u32_t cpu_get_depth(void)
+{
+	return call_depth;
+}
+
 static void generate_interrupt(int_slot_t slot, u8_t bit)
 {
 	/* Set the factor flag no matter what */

@@ -24,8 +24,9 @@
 
 #define DEFAULT_FRAMERATE				30 // fps
 
-static bool_t step_by_step_en = 0;
-static bool_t is_paused = 0;
+static exec_mode_t exec_mode = EXEC_MODE_RUN;
+
+static u32_t step_depth = 0;
 
 static timestamp_t screen_ts = 0;
 
@@ -69,26 +70,52 @@ void tamalib_register_hal(hal_t *hal)
 	g_hal = hal;
 }
 
-void tamalib_pause(bool_t en)
+void tamalib_set_exec_mode(exec_mode_t mode)
 {
-	is_paused = en;
-}
-
-void tamalib_enable_step_by_step(bool_t en)
-{
-	step_by_step_en = en;
+	exec_mode = mode;
+	step_depth = cpu_get_depth();
 }
 
 void tamalib_step(void)
 {
-	if (is_paused) {
+	if (exec_mode == EXEC_MODE_PAUSE) {
 		return;
 	}
 
-	is_paused = cpu_step();
+	if (cpu_step()) {
+		exec_mode = EXEC_MODE_PAUSE;
+		step_depth = cpu_get_depth();
+	} else {
+		switch (exec_mode) {
+			case EXEC_MODE_PAUSE:
+			case EXEC_MODE_RUN:
+				break;
 
-	if (step_by_step_en) {
-		is_paused = 1;
+			case EXEC_MODE_STEP:
+				exec_mode = EXEC_MODE_PAUSE;
+				break;
+
+			case EXEC_MODE_NEXT:
+				if (cpu_get_depth() <= step_depth) {
+					exec_mode = EXEC_MODE_PAUSE;
+					step_depth = cpu_get_depth();
+				}
+				break;
+
+			case EXEC_MODE_TO_CALL:
+				if (cpu_get_depth() > step_depth) {
+					exec_mode = EXEC_MODE_PAUSE;
+					step_depth = cpu_get_depth();
+				}
+				break;
+
+			case EXEC_MODE_TO_RET:
+				if (cpu_get_depth() < step_depth) {
+					exec_mode = EXEC_MODE_PAUSE;
+					step_depth = cpu_get_depth();
+				}
+				break;
+		}
 	}
 }
 

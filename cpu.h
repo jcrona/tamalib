@@ -96,6 +96,8 @@ void cpu_set_speed(u8_t speed);
 
 state_t * cpu_get_state(void);
 
+u32_t cpu_get_depth(void);
+
 void cpu_set_input_pin(pin_t pin, pin_state_t state);
 
 bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq);
