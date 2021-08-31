@@ -142,6 +142,7 @@ static state_t cpu_state = {
 	.sp = &sp,
 	.flags = &flags,
 
+	.tick_counter = &tick_counter,
 	.clk_timer_timestamp = &clk_timer_timestamp,
 	.prog_timer_timestamp = &prog_timer_timestamp,
 	.prog_timer_enabled = &prog_timer_enabled,
