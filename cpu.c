@@ -573,6 +573,24 @@ static void set_memory(u12_t n, u4_t v)
 	g_hal->log(LOG_MEMORY, "Write 0x%X - Address 0x%03X - PC = 0x%04X\n", v, n, pc);
 }
 
+void cpu_refresh_hw_from_memory() {
+	const struct range {
+		u12_t from;
+		u12_t to;
+	} refresh_locs[] = {
+		{ 0xE00, 0xE4F }, /* Display Memory 1 */
+		{ 0xE80, 0xECF }, /* Display Memory 2 */
+		{ 0xF74, 0xF74 }, /* Buzzer frequency */
+		{ 0xF54, 0xF54 }, /* Buzzer enabled */
+		{ 0, 0 }, // end of list
+	};
+	for (int i=0; refresh_locs[i].to != 0; i++) {
+		for (u12_t n = refresh_locs[i].from; n <= refresh_locs[i].to; n++) {
+			set_memory(n, memory[n]);
+		}
+	}
+}
+
 static u4_t get_rq(u12_t rq)
 {
 	switch (rq & 0x3) {
