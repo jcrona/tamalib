@@ -50,7 +50,9 @@ TamaLIB is distributed under the GPLv2 license. See the LICENSE file for more in
 
 ## Hardware information
 
-The Tamagotchi P1 is based on an E0C6S46 Epson MCU, and runs at 32,768 kHz. Its LCD is 32x16 B/W pixels, with 8 icons.
+The Tamagotchi P1 is based on an
+[E0C6S46 Epson MCU](https://download.epson-europe.com/pub/electronics-de/asmic/4bit/62family/technicalmanual/tm_6s46.pdf),
+and runs at 32,768 kHz. Its LCD is 32x16 B/W pixels, with 8 icons.
 To my knowledge, the ROM available online has been extracted from a high-res picture of a die. The ROM mask was clear enough to be optically read. The pictures can be seen [there](https://siliconpr0n.org/map/bandai/tamagotchi-v1/) (thx asterick for the link !).  
 I would love to see the same work done on a P2 and add support for it in TamaLIB/TamaTool !
 
