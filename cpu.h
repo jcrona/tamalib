@@ -108,4 +108,6 @@ void cpu_release(void);
 
 int cpu_step(void);
 
+void cpu_refresh_hw_from_memory(void);
+
 #endif /* _CPU_H_ */
