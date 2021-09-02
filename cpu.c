@@ -1721,7 +1721,6 @@ OP_TABLE(LABEL_ENTRY)
 	uint8_t arg0 = 0, arg1 = 0;
 	// Precompute and cache some stuff that's not going to change
 	// before this step is over.
-	u32_t soonest_interrupt = tick_counter;
 	bool_t skip_first_breakpoint = 0;
 	bool_t log_enabled = g_hal->is_log_enabled(LOG_CPU);
 	bool_t fast_as_possible = (speed_ratio == 0);
@@ -1731,6 +1730,12 @@ OP_TABLE(LABEL_ENTRY)
 		adj_cycles_7 = (7 * ts_freq) / (TICK_FREQUENCY * speed_ratio);
 		adj_cycles_12 = (12 * ts_freq) / (TICK_FREQUENCY * speed_ratio);
 	}
+	// We might have saved/loaded state before calling this, so interrupt
+	// asserted might not be valid.  Set it on the first step to
+	// re-validate.
+	interrupt_asserted = 1;
+	// Ditto for soonest_interrupt; ensure we re-validate it on first step.
+	u32_t soonest_interrupt = tick_counter;
 
 	if (threaded_program[0] == NULL) {
 		/* init */
@@ -1801,14 +1806,17 @@ OP_TABLE(LABEL_ENTRY)
 		if (mask_arg0 != 0) {										  \
 			arg1 = threaded_arg1[pc];								  \
 		}															  \
-		op_##name##_cb(arg0, arg1);									  \
 		/* This is an unrolled version of wait_for_cycles */          \
-		tick_counter += cycles;										  \
 		if (!fast_as_possible) {									  \
 			timestamp_t deadline = ref_ts + adj_cycles_##cycles;	  \
 			g_hal->sleep_until(deadline);						      \
 			ref_ts = deadline;										  \
 		}															  \
+		/* We sleep_until just *before* execution so that we're in */ \
+		/* a consistent architectural state in case we save/load */	  \
+		/* state from within sleep_until(). */						  \
+		tick_counter += cycles;										  \
+		op_##name##_cb(arg0, arg1);									  \
 		pc = next_pc;												  \
 		if (code != 0xE40) {										  \
 			/* OP code is not PSET, reset NP */						  \
