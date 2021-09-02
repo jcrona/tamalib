@@ -83,7 +83,7 @@ void tamalib_step(void)
 		return;
 	}
 
-	if (cpu_step()) {
+	if (exec_mode == EXEC_MODE_RUN ? cpu_fast_step() : cpu_step()) {
 		exec_mode = EXEC_MODE_PAUSE;
 		step_depth = cpu_get_depth();
 	} else {
