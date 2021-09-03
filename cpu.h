@@ -101,11 +101,11 @@ void cpu_set_input_pin(pin_t pin, pin_state_t state);
 
 void cpu_sync_ref_timestamp(void);
 
+void cpu_refresh_hw(void);
+
 bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq);
 void cpu_release(void);
 
 int cpu_step(void);
-
-void cpu_refresh_hw_from_memory(void);
 
 #endif /* _CPU_H_ */

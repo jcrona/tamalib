@@ -573,7 +573,7 @@ static void set_memory(u12_t n, u4_t v)
 	g_hal->log(LOG_MEMORY, "Write 0x%X - Address 0x%03X - PC = 0x%04X\n", v, n, pc);
 }
 
-void cpu_refresh_hw_from_memory(void)
+void cpu_refresh_hw(void)
 {
 	const struct range {
 		u12_t from;
