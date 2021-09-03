@@ -102,6 +102,7 @@ static u8_t sp;
 /* Flags */
 static u4_t flags;
 
+#define PROGRAM_SIZE 6144
 static const u12_t *g_program = NULL;
 static u4_t memory[MEMORY_SIZE];
 
@@ -116,6 +117,7 @@ static interrupt_t interrupts[INT_SLOT_NUM] = {
 	{0x0, 0x0, 0, 0x04}, // Stopwatch timer
 	{0x0, 0x0, 0, 0x02}, // Clock timer
 };
+static bool_t interrupt_asserted = 0;
 
 static breakpoint_t *g_breakpoints = NULL;
 
@@ -215,6 +217,7 @@ static void generate_interrupt(int_slot_t slot, u8_t bit)
 	/* Trigger the INT only if not masked */
 	if (interrupts[slot].mask_reg & (0x1 << bit)) {
 		interrupts[slot].triggered = 1;
+		interrupt_asserted = 1;
 	}
 }
 
@@ -385,6 +388,9 @@ static u4_t get_io(u12_t n)
 static void set_io(u12_t n, u4_t v)
 {
 	switch (n) {
+		// Note: "Be sure that writing to the interrupt mask register is
+		// done with the interrupt in the disable state." So clearing the
+		// mask register *shouldn't* trigger the interrupt.
 		case 0xF10:
 			/* Clock timer interrupt masks */
 			/* Assume 1Hz timer INT enabled (0x8) */
@@ -614,50 +620,50 @@ static void set_rq(u12_t rq, u4_t v)
 }
 
 /* Instructions */
-static void op_pset_cb(u8_t arg0, u8_t arg1)
+static inline void op_pset_cb(u8_t arg0, u8_t arg1)
 {
 	np = arg0;
 }
 
-static void op_jp_cb(u8_t arg0, u8_t arg1)
+static inline void op_jp_cb(u8_t arg0, u8_t arg1)
 {
 	next_pc = arg0 | (np << 8);
 }
 
-static void op_jp_c_cb(u8_t arg0, u8_t arg1)
+static inline void op_jp_c_cb(u8_t arg0, u8_t arg1)
 {
 	if (flags & FLAG_C) {
 		next_pc = arg0 | (np << 8);
 	}
 }
 
-static void op_jp_nc_cb(u8_t arg0, u8_t arg1)
+static inline void op_jp_nc_cb(u8_t arg0, u8_t arg1)
 {
 	if (!(flags & FLAG_C)) {
 		next_pc = arg0 | (np << 8);
 	}
 }
 
-static void op_jp_z_cb(u8_t arg0, u8_t arg1)
+static inline void op_jp_z_cb(u8_t arg0, u8_t arg1)
 {
 	if (flags & FLAG_Z) {
 		next_pc = arg0 | (np << 8);
 	}
 }
 
-static void op_jp_nz_cb(u8_t arg0, u8_t arg1)
+static inline void op_jp_nz_cb(u8_t arg0, u8_t arg1)
 {
 	if (!(flags & FLAG_Z)) {
 		next_pc = arg0 | (np << 8);
 	}
 }
 
-static void op_jpba_cb(u8_t arg0, u8_t arg1)
+static inline void op_jpba_cb(u8_t arg0, u8_t arg1)
 {
 	next_pc = a | (b << 4) | (np << 8);
 }
 
-static void op_call_cb(u8_t arg0, u8_t arg1)
+static inline void op_call_cb(u8_t arg0, u8_t arg1)
 {
 	pc = (pc + 1) & 0x1FFF; // This does not actually change the PC register
 	SET_M(sp - 1, PCP);
@@ -668,7 +674,7 @@ static void op_call_cb(u8_t arg0, u8_t arg1)
 	call_depth++;
 }
 
-static void op_calz_cb(u8_t arg0, u8_t arg1)
+static inline void op_calz_cb(u8_t arg0, u8_t arg1)
 {
 	pc = (pc + 1) & 0x1FFF; // This does not actually change the PC register
 	SET_M(sp - 1, PCP);
@@ -679,14 +685,14 @@ static void op_calz_cb(u8_t arg0, u8_t arg1)
 	call_depth++;
 }
 
-static void op_ret_cb(u8_t arg0, u8_t arg1)
+static inline void op_ret_cb(u8_t arg0, u8_t arg1)
 {
 	next_pc = M(sp) | (M(sp + 1) << 4) | (M(sp + 2) << 8) | (PCB << 12);
 	sp = (sp + 3) & 0xFF;
 	call_depth--;
 }
 
-static void op_rets_cb(u8_t arg0, u8_t arg1)
+static inline void op_rets_cb(u8_t arg0, u8_t arg1)
 {
 	next_pc = M(sp) | (M(sp + 1) << 4) | (M(sp + 2) << 8) | (PCB << 12);
 	sp = (sp + 3) & 0xFF;
@@ -694,7 +700,7 @@ static void op_rets_cb(u8_t arg0, u8_t arg1)
 	call_depth--;
 }
 
-static void op_retd_cb(u8_t arg0, u8_t arg1)
+static inline void op_retd_cb(u8_t arg0, u8_t arg1)
 {
 	next_pc = M(sp) | (M(sp + 1) << 4) | (M(sp + 2) << 8) | (PCB << 12);
 	sp = (sp + 3) & 0xFF;
@@ -704,100 +710,100 @@ static void op_retd_cb(u8_t arg0, u8_t arg1)
 	call_depth--;
 }
 
-static void op_nop5_cb(u8_t arg0, u8_t arg1)
+static inline void op_nop5_cb(u8_t arg0, u8_t arg1)
 {
 }
 
-static void op_nop7_cb(u8_t arg0, u8_t arg1)
+static inline void op_nop7_cb(u8_t arg0, u8_t arg1)
 {
 }
 
-static void op_halt_cb(u8_t arg0, u8_t arg1)
+static inline void op_halt_cb(u8_t arg0, u8_t arg1)
 {
 	g_hal->halt();
 }
 
-static void op_inc_x_cb(u8_t arg0, u8_t arg1)
+static inline void op_inc_x_cb(u8_t arg0, u8_t arg1)
 {
 	x = (x + 1) & 0xFFF;
 }
 
-static void op_inc_y_cb(u8_t arg0, u8_t arg1)
+static inline void op_inc_y_cb(u8_t arg0, u8_t arg1)
 {
 	y = (y + 1) & 0xFFF;
 }
 
-static void op_ld_x_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_x_cb(u8_t arg0, u8_t arg1)
 {
 	x = arg0 | (XP << 8);
 }
 
-static void op_ld_y_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_y_cb(u8_t arg0, u8_t arg1)
 {
 	y = arg0 | (YP << 8);
 }
 
-static void op_ld_xp_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_xp_r_cb(u8_t arg0, u8_t arg1)
 {
 	x = XHL | (RQ(arg0) << 8);
 }
 
-static void op_ld_xh_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_xh_r_cb(u8_t arg0, u8_t arg1)
 {
 	x = XL | (RQ(arg0) << 4) | (XP << 8);
 }
 
-static void op_ld_xl_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_xl_r_cb(u8_t arg0, u8_t arg1)
 {
 	x = RQ(arg0) | (XH << 4) | (XP << 8);
 }
 
-static void op_ld_yp_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_yp_r_cb(u8_t arg0, u8_t arg1)
 {
 	y = YHL | (RQ(arg0) << 8);
 }
 
-static void op_ld_yh_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_yh_r_cb(u8_t arg0, u8_t arg1)
 {
 	y = YL | (RQ(arg0) << 4) | (YP << 8);
 }
 
-static void op_ld_yl_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_yl_r_cb(u8_t arg0, u8_t arg1)
 {
 	y = RQ(arg0) | (YH << 4) | (YP << 8);
 }
 
-static void op_ld_r_xp_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_xp_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, XP);
 }
 
-static void op_ld_r_xh_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_xh_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, XH);
 }
 
-static void op_ld_r_xl_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_xl_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, XL);
 }
 
-static void op_ld_r_yp_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_yp_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, YP);
 }
 
-static void op_ld_r_yh_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_yh_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, YH);
 }
 
-static void op_ld_r_yl_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_yl_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, YL);
 }
 
-static void op_adc_xh_cb(u8_t arg0, u8_t arg1)
+static inline void op_adc_xh_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -807,7 +813,7 @@ static void op_adc_xh_cb(u8_t arg0, u8_t arg1)
 	if (!(tmp & 0xF)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_adc_xl_cb(u8_t arg0, u8_t arg1)
+static inline void op_adc_xl_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -817,7 +823,7 @@ static void op_adc_xl_cb(u8_t arg0, u8_t arg1)
 	if (!(tmp & 0xF)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_adc_yh_cb(u8_t arg0, u8_t arg1)
+static inline void op_adc_yh_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -827,7 +833,7 @@ static void op_adc_yh_cb(u8_t arg0, u8_t arg1)
 	if (!(tmp & 0xF)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_adc_yl_cb(u8_t arg0, u8_t arg1)
+static inline void op_adc_yl_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -837,268 +843,276 @@ static void op_adc_yl_cb(u8_t arg0, u8_t arg1)
 	if (!(tmp & 0xF)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_cp_xh_cb(u8_t arg0, u8_t arg1)
+static inline void op_cp_xh_cb(u8_t arg0, u8_t arg1)
 {
 	if (XH < arg0) { SET_C(); } else { CLEAR_C(); }
 	if (XH == arg0) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_cp_xl_cb(u8_t arg0, u8_t arg1)
+static inline void op_cp_xl_cb(u8_t arg0, u8_t arg1)
 {
 	if (XL < arg0) { SET_C(); } else { CLEAR_C(); }
 	if (XL == arg0) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_cp_yh_cb(u8_t arg0, u8_t arg1)
+static inline void op_cp_yh_cb(u8_t arg0, u8_t arg1)
 {
 	if (YH < arg0) { SET_C(); } else { CLEAR_C(); }
 	if (YH == arg0) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_cp_yl_cb(u8_t arg0, u8_t arg1)
+static inline void op_cp_yl_cb(u8_t arg0, u8_t arg1)
 {
 	if (YL < arg0) { SET_C(); } else { CLEAR_C(); }
 	if (YL == arg0) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_ld_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, arg1);
 }
 
-static void op_ld_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg1));
 }
 
-static void op_ld_a_mn_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_a_mn_cb(u8_t arg0, u8_t arg1)
 {
 	a = M(arg0);
 }
 
-static void op_ld_b_mn_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_b_mn_cb(u8_t arg0, u8_t arg1)
 {
 	b = M(arg0);
 }
 
-static void op_ld_mn_a_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_mn_a_cb(u8_t arg0, u8_t arg1)
 {
 	SET_M(arg0, a);
 }
 
-static void op_ld_mn_b_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_mn_b_cb(u8_t arg0, u8_t arg1)
 {
 	SET_M(arg0, b);
 }
 
-static void op_ldpx_mx_cb(u8_t arg0, u8_t arg1)
+static inline void op_ldpx_mx_cb(u8_t arg0, u8_t arg1)
 {
 	SET_M(x, arg0);
 	x = (x + 1) & 0xFFF;
 }
 
-static void op_ldpx_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ldpx_r_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg1));
 	x = (x + 1) & 0xFFF;
 }
 
-static void op_ldpy_my_cb(u8_t arg0, u8_t arg1)
+static inline void op_ldpy_my_cb(u8_t arg0, u8_t arg1)
 {
 	SET_M(y, arg0);
 	y = (y + 1) & 0xFFF;
 }
 
-static void op_ldpy_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ldpy_r_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg1));
 	y = (y + 1) & 0xFFF;
 }
 
-static void op_lbpx_cb(u8_t arg0, u8_t arg1)
+static inline void op_lbpx_cb(u8_t arg0, u8_t arg1)
 {
 	SET_M(x, arg0 & 0xF);
 	SET_M(x + 1, (arg0 >> 4) & 0xF);
 	x = (x + 2) & 0xFFF;
 }
 
-static void op_set_cb(u8_t arg0, u8_t arg1)
+static inline void op_set_cb(u8_t arg0, u8_t arg1)
 {
 	flags |= arg0;
+	// This might enable a triggered interrupt to now be asserted.
+	interrupt_asserted = 1;
 }
 
-static void op_rst_cb(u8_t arg0, u8_t arg1)
+static inline void op_rst_cb(u8_t arg0, u8_t arg1)
 {
 	flags &= arg0;
 }
 
-static void op_scf_cb(u8_t arg0, u8_t arg1)
+static inline void op_scf_cb(u8_t arg0, u8_t arg1)
 {
 	SET_C();
 }
 
-static void op_rcf_cb(u8_t arg0, u8_t arg1)
+static inline void op_rcf_cb(u8_t arg0, u8_t arg1)
 {
 	CLEAR_C();
 }
 
-static void op_szf_cb(u8_t arg0, u8_t arg1)
+static inline void op_szf_cb(u8_t arg0, u8_t arg1)
 {
 	SET_Z();
 }
 
-static void op_rzf_cb(u8_t arg0, u8_t arg1)
+static inline void op_rzf_cb(u8_t arg0, u8_t arg1)
 {
 	CLEAR_Z();
 }
 
-static void op_sdf_cb(u8_t arg0, u8_t arg1)
+static inline void op_sdf_cb(u8_t arg0, u8_t arg1)
 {
 	SET_D();
 }
 
-static void op_rdf_cb(u8_t arg0, u8_t arg1)
+static inline void op_rdf_cb(u8_t arg0, u8_t arg1)
 {
 	CLEAR_D();
 }
 
-static void op_ei_cb(u8_t arg0, u8_t arg1)
+static inline void op_ei_cb(u8_t arg0, u8_t arg1)
 {
 	SET_I();
+	// This might enable a triggered interrupt to now be asserted.
+	interrupt_asserted = 1;
 }
 
-static void op_di_cb(u8_t arg0, u8_t arg1)
+static inline void op_di_cb(u8_t arg0, u8_t arg1)
 {
 	CLEAR_I();
+	// Even if there's an interrupt triggered, it won't be asserted now.
+	interrupt_asserted = 0;
 }
 
-static void op_inc_sp_cb(u8_t arg0, u8_t arg1)
+static inline void op_inc_sp_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_dec_sp_cb(u8_t arg0, u8_t arg1)
+static inline void op_dec_sp_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 }
 
-static void op_push_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_r_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, RQ(arg0));
 }
 
-static void op_push_xp_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_xp_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, XP);
 }
 
-static void op_push_xh_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_xh_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, XH);
 }
 
-static void op_push_xl_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_xl_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, XL);
 }
 
-static void op_push_yp_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_yp_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, YP);
 }
 
-static void op_push_yh_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_yh_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, YH);
 }
 
-static void op_push_yl_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_yl_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, YL);
 }
 
-static void op_push_f_cb(u8_t arg0, u8_t arg1)
+static inline void op_push_f_cb(u8_t arg0, u8_t arg1)
 {
 	sp = (sp - 1) & 0xFF;
 	SET_M(sp, flags);
 }
 
-static void op_pop_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_r_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, M(sp));
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_pop_xp_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_xp_cb(u8_t arg0, u8_t arg1)
 {
 	x = XL | (XH << 4)| (M(sp) << 8);
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_pop_xh_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_xh_cb(u8_t arg0, u8_t arg1)
 {
 	x = XL | (M(sp) << 4)| (XP << 8);
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_pop_xl_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_xl_cb(u8_t arg0, u8_t arg1)
 {
 	x = M(sp) | (XH << 4)| (XP << 8);
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_pop_yp_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_yp_cb(u8_t arg0, u8_t arg1)
 {
 	y = YL | (YH << 4)| (M(sp) << 8);
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_pop_yh_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_yh_cb(u8_t arg0, u8_t arg1)
 {
 	y = YL | (M(sp) << 4)| (YP << 8);
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_pop_yl_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_yl_cb(u8_t arg0, u8_t arg1)
 {
 	y = M(sp) | (YH << 4)| (YP << 8);
 	sp = (sp + 1) & 0xFF;
 }
 
-static void op_pop_f_cb(u8_t arg0, u8_t arg1)
+static inline void op_pop_f_cb(u8_t arg0, u8_t arg1)
 {
 	flags = M(sp);
 	sp = (sp + 1) & 0xFF;
+	// This might enable a triggered interrupt to now be asserted.
+	interrupt_asserted = 1;
 }
 
-static void op_ld_sph_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_sph_r_cb(u8_t arg0, u8_t arg1)
 {
 	sp = SPL | (RQ(arg0) << 4);
 }
 
-static void op_ld_spl_r_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_spl_r_cb(u8_t arg0, u8_t arg1)
 {
 	sp = RQ(arg0) | (SPH << 4);
 }
 
-static void op_ld_r_sph_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_sph_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, SPH);
 }
 
-static void op_ld_r_spl_cb(u8_t arg0, u8_t arg1)
+static inline void op_ld_r_spl_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, SPL);
 }
 
-static void op_add_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_add_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1118,7 +1132,7 @@ static void op_add_r_i_cb(u8_t arg0, u8_t arg1)
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_add_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_add_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1138,7 +1152,7 @@ static void op_add_r_q_cb(u8_t arg0, u8_t arg1)
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_adc_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_adc_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1158,7 +1172,7 @@ static void op_adc_r_i_cb(u8_t arg0, u8_t arg1)
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_adc_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_adc_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1178,7 +1192,7 @@ static void op_adc_r_q_cb(u8_t arg0, u8_t arg1)
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_sub_cb(u8_t arg0, u8_t arg1)
+static inline void op_sub_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1196,7 +1210,7 @@ static void op_sub_cb(u8_t arg0, u8_t arg1)
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_sbc_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_sbc_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1214,7 +1228,7 @@ static void op_sbc_r_i_cb(u8_t arg0, u8_t arg1)
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_sbc_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_sbc_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1232,65 +1246,65 @@ static void op_sbc_r_q_cb(u8_t arg0, u8_t arg1)
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_and_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_and_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg0) & arg1);
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_and_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_and_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg0) & RQ(arg1));
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_or_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_or_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg0) | arg1);
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_or_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_or_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg0) | RQ(arg1));
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_xor_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_xor_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg0) ^ arg1);
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_xor_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_xor_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, RQ(arg0) ^ RQ(arg1));
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_cp_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_cp_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	if (RQ(arg0) < arg1) { SET_C(); } else { CLEAR_C(); }
 	if (RQ(arg0) == arg1) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_cp_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_cp_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	if (RQ(arg0) < RQ(arg1)) { SET_C(); } else { CLEAR_C(); }
 	if (RQ(arg0) == RQ(arg1)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_fan_r_i_cb(u8_t arg0, u8_t arg1)
+static inline void op_fan_r_i_cb(u8_t arg0, u8_t arg1)
 {
 	if (!(RQ(arg0) & arg1)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_fan_r_q_cb(u8_t arg0, u8_t arg1)
+static inline void op_fan_r_q_cb(u8_t arg0, u8_t arg1)
 {
 	if (!(RQ(arg0) & RQ(arg1))) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_rlc_cb(u8_t arg0, u8_t arg1)
+static inline void op_rlc_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1300,7 +1314,7 @@ static void op_rlc_cb(u8_t arg0, u8_t arg1)
 	/* No need to set Z (issue in DS) */
 }
 
-static void op_rrc_cb(u8_t arg0, u8_t arg1)
+static inline void op_rrc_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1310,7 +1324,7 @@ static void op_rrc_cb(u8_t arg0, u8_t arg1)
 	/* No need to set Z (issue in DS) */
 }
 
-static void op_inc_mn_cb(u8_t arg0, u8_t arg1)
+static inline void op_inc_mn_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1320,7 +1334,7 @@ static void op_inc_mn_cb(u8_t arg0, u8_t arg1)
 	if (!M(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_dec_mn_cb(u8_t arg0, u8_t arg1)
+static inline void op_dec_mn_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1330,7 +1344,7 @@ static void op_dec_mn_cb(u8_t arg0, u8_t arg1)
 	if (!M(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
-static void op_acpx_cb(u8_t arg0, u8_t arg1)
+static inline void op_acpx_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1351,7 +1365,7 @@ static void op_acpx_cb(u8_t arg0, u8_t arg1)
 	x = (x + 1) & 0xFFF;
 }
 
-static void op_acpy_cb(u8_t arg0, u8_t arg1)
+static inline void op_acpy_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1372,7 +1386,7 @@ static void op_acpy_cb(u8_t arg0, u8_t arg1)
 	y = (y + 1) & 0xFFF;
 }
 
-static void op_scpx_cb(u8_t arg0, u8_t arg1)
+static inline void op_scpx_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1391,7 +1405,7 @@ static void op_scpx_cb(u8_t arg0, u8_t arg1)
 	x = (x + 1) & 0xFFF;
 }
 
-static void op_scpy_cb(u8_t arg0, u8_t arg1)
+static inline void op_scpy_cb(u8_t arg0, u8_t arg1)
 {
 	u8_t tmp;
 
@@ -1410,123 +1424,127 @@ static void op_scpy_cb(u8_t arg0, u8_t arg1)
 	y = (y + 1) & 0xFFF;
 }
 
-static void op_not_cb(u8_t arg0, u8_t arg1)
+static inline void op_not_cb(u8_t arg0, u8_t arg1)
 {
 	SET_RQ(arg0, ~RQ(arg0) & 0xF);
 	if (!RQ(arg0)) { SET_Z(); } else { CLEAR_Z(); }
 }
 
 /* The E0C6S46 supported instructions */
-static const op_t ops[] = {
-	{"PSET #0x%02X            "  , 0xE40, MASK_7B , 0, 0    , 5 , &op_pset_cb}, // PSET
-	{"JP   #0x%02X            "  , 0x000, MASK_4B , 0, 0    , 5 , &op_jp_cb}, // JP
-	{"JP   C #0x%02X          "  , 0x200, MASK_4B , 0, 0    , 5 , &op_jp_c_cb}, // JP_C
-	{"JP   NC #0x%02X         "  , 0x300, MASK_4B , 0, 0    , 5 , &op_jp_nc_cb}, // JP_NC
-	{"JP   Z #0x%02X          "  , 0x600, MASK_4B , 0, 0    , 5 , &op_jp_z_cb}, // JP_Z
-	{"JP   NZ #0x%02X         "  , 0x700, MASK_4B , 0, 0    , 5 , &op_jp_nz_cb}, // JP_NZ
-	{"JPBA                  "    , 0xFE8, MASK_12B, 0, 0    , 5 , &op_jpba_cb}, // JPBA
-	{"CALL #0x%02X            "  , 0x400, MASK_4B , 0, 0    , 7 , &op_call_cb}, // CALL
-	{"CALZ #0x%02X            "  , 0x500, MASK_4B , 0, 0    , 7 , &op_calz_cb}, // CALZ
-	{"RET                   "    , 0xFDF, MASK_12B, 0, 0    , 7 , &op_ret_cb}, // RET
-	{"RETS                  "    , 0xFDE, MASK_12B, 0, 0    , 12, &op_rets_cb}, // RETS
-	{"RETD #0x%02X            "  , 0x100, MASK_4B , 0, 0    , 12, &op_retd_cb}, // RETD
-	{"NOP5                  "    , 0xFFB, MASK_12B, 0, 0    , 5 , &op_nop5_cb}, // NOP5
-	{"NOP7                  "    , 0xFFF, MASK_12B, 0, 0    , 7 , &op_nop7_cb}, // NOP7
-	{"HALT                  "    , 0xFF8, MASK_12B, 0, 0    , 5 , &op_halt_cb}, // HALT
-	{"INC  X #0x%02X          "  , 0xEE0, MASK_12B, 0, 0    , 5 , &op_inc_x_cb}, // INC_X
-	{"INC  Y #0x%02X          "  , 0xEF0, MASK_12B, 0, 0    , 5 , &op_inc_y_cb}, // INC_Y
-	{"LD   X #0x%02X          "  , 0xB00, MASK_4B , 0, 0    , 5 , &op_ld_x_cb}, // LD_X
-	{"LD   Y #0x%02X          "  , 0x800, MASK_4B , 0, 0    , 5 , &op_ld_y_cb}, // LD_Y
-	{"LD   XP R(#0x%02X)      "  , 0xE80, MASK_10B, 0, 0    , 5 , &op_ld_xp_r_cb}, // LD_XP_R
-	{"LD   XH R(#0x%02X)      "  , 0xE84, MASK_10B, 0, 0    , 5 , &op_ld_xh_r_cb}, // LD_XH_R
-	{"LD   XL R(#0x%02X)      "  , 0xE88, MASK_10B, 0, 0    , 5 , &op_ld_xl_r_cb}, // LD_XL_R
-	{"LD   YP R(#0x%02X)      "  , 0xE90, MASK_10B, 0, 0    , 5 , &op_ld_yp_r_cb}, // LD_YP_R
-	{"LD   YH R(#0x%02X)      "  , 0xE94, MASK_10B, 0, 0    , 5 , &op_ld_yh_r_cb}, // LD_YH_R
-	{"LD   YL R(#0x%02X)      "  , 0xE98, MASK_10B, 0, 0    , 5 , &op_ld_yl_r_cb}, // LD_YL_R
-	{"LD   R(#0x%02X) XP      "  , 0xEA0, MASK_10B, 0, 0    , 5 , &op_ld_r_xp_cb}, // LD_R_XP
-	{"LD   R(#0x%02X) XH      "  , 0xEA4, MASK_10B, 0, 0    , 5 , &op_ld_r_xh_cb}, // LD_R_XH
-	{"LD   R(#0x%02X) XL      "  , 0xEA8, MASK_10B, 0, 0    , 5 , &op_ld_r_xl_cb}, // LD_R_XL
-	{"LD   R(#0x%02X) YP      "  , 0xEB0, MASK_10B, 0, 0    , 5 , &op_ld_r_yp_cb}, // LD_R_YP
-	{"LD   R(#0x%02X) YH      "  , 0xEB4, MASK_10B, 0, 0    , 5 , &op_ld_r_yh_cb}, // LD_R_YH
-	{"LD   R(#0x%02X) YL      "  , 0xEB8, MASK_10B, 0, 0    , 5 , &op_ld_r_yl_cb}, // LD_R_YL
-	{"ADC  XH #0x%02X         "  , 0xA00, MASK_8B , 0, 0    , 7 , &op_adc_xh_cb}, // ADC_XH
-	{"ADC  XL #0x%02X         "  , 0xA10, MASK_8B , 0, 0    , 7 , &op_adc_xl_cb}, // ADC_XL
-	{"ADC  YH #0x%02X         "  , 0xA20, MASK_8B , 0, 0    , 7 , &op_adc_yh_cb}, // ADC_YH
-	{"ADC  YL #0x%02X         "  , 0xA30, MASK_8B , 0, 0    , 7 , &op_adc_yl_cb}, // ADC_YL
-	{"CP   XH #0x%02X         "  , 0xA40, MASK_8B , 0, 0    , 7 , &op_cp_xh_cb}, // CP_XH
-	{"CP   XL #0x%02X         "  , 0xA50, MASK_8B , 0, 0    , 7 , &op_cp_xl_cb}, // CP_XL
-	{"CP   YH #0x%02X         "  , 0xA60, MASK_8B , 0, 0    , 7 , &op_cp_yh_cb}, // CP_YH
-	{"CP   YL #0x%02X         "  , 0xA70, MASK_8B , 0, 0    , 7 , &op_cp_yl_cb}, // CP_YL
-	{"LD   R(#0x%02X) #0x%02X   ", 0xE00, MASK_6B , 4, 0x030, 5 , &op_ld_r_i_cb}, // LD_R_I
-	{"LD   R(#0x%02X) Q(#0x%02X)", 0xEC0, MASK_8B , 2, 0x00C, 5 , &op_ld_r_q_cb}, // LD_R_Q
-	{"LD   A M(#0x%02X)       "  , 0xFA0, MASK_8B , 0, 0    , 5 , &op_ld_a_mn_cb}, // LD_A_MN
-	{"LD   B M(#0x%02X)       "  , 0xFB0, MASK_8B , 0, 0    , 5 , &op_ld_b_mn_cb}, // LD_B_MN
-	{"LD   M(#0x%02X) A       "  , 0xF80, MASK_8B , 0, 0    , 5 , &op_ld_mn_a_cb}, // LD_MN_A
-	{"LD   M(#0x%02X) B       "  , 0xF90, MASK_8B , 0, 0    , 5 , &op_ld_mn_b_cb}, // LD_MN_B
-	{"LDPX MX #0x%02X         "  , 0xE60, MASK_8B , 0, 0    , 5 , &op_ldpx_mx_cb}, // LDPX_MX
-	{"LDPX R(#0x%02X) Q(#0x%02X)", 0xEE0, MASK_8B , 2, 0x00C, 5 , &op_ldpx_r_cb}, // LDPX_R
-	{"LDPY MY #0x%02X         "  , 0xE70, MASK_8B , 0, 0    , 5 , &op_ldpy_my_cb}, // LDPY_MY
-	{"LDPY R(#0x%02X) Q(#0x%02X)", 0xEF0, MASK_8B , 2, 0x00C, 5 , &op_ldpy_r_cb}, // LDPY_R
-	{"LBPX #0x%02X            "  , 0x900, MASK_4B , 0, 0    , 5 , &op_lbpx_cb}, // LBPX
-	{"SET  #0x%02X            "  , 0xF40, MASK_8B , 0, 0    , 7 , &op_set_cb}, // SET
-	{"RST  #0x%02X            "  , 0xF50, MASK_8B , 0, 0    , 7 , &op_rst_cb}, // RST
-	{"SCF                   "    , 0xF41, MASK_12B, 0, 0    , 7 , &op_scf_cb}, // SCF
-	{"RCF                   "    , 0xF5E, MASK_12B, 0, 0    , 7 , &op_rcf_cb}, // RCF
-	{"SZF                   "    , 0xF42, MASK_12B, 0, 0    , 7 , &op_szf_cb}, // SZF
-	{"RZF                   "    , 0xF5D, MASK_12B, 0, 0    , 7 , &op_rzf_cb}, // RZF
-	{"SDF                   "    , 0xF44, MASK_12B, 0, 0    , 7 , &op_sdf_cb}, // SDF
-	{"RDF                   "    , 0xF5B, MASK_12B, 0, 0    , 7 , &op_rdf_cb}, // RDF
-	{"EI                    "    , 0xF48, MASK_12B, 0, 0    , 7 , &op_ei_cb}, // EI
-	{"DI                    "    , 0xF57, MASK_12B, 0, 0    , 7 , &op_di_cb}, // DI
-	{"INC  SP               "    , 0xFDB, MASK_12B, 0, 0    , 5 , &op_inc_sp_cb}, // INC_SP
-	{"DEC  SP               "    , 0xFCB, MASK_12B, 0, 0    , 5 , &op_dec_sp_cb}, // DEC_SP
-	{"PUSH R(#0x%02X)         "  , 0xFC0, MASK_10B, 0, 0    , 5 , &op_push_r_cb}, // PUSH_R
-	{"PUSH XP               "    , 0xFC4, MASK_12B, 0, 0    , 5 , &op_push_xp_cb}, // PUSH_XP
-	{"PUSH XH               "    , 0xFC5, MASK_12B, 0, 0    , 5 , &op_push_xh_cb}, // PUSH_XH
-	{"PUSH XL               "    , 0xFC6, MASK_12B, 0, 0    , 5 , &op_push_xl_cb}, // PUSH_XL
-	{"PUSH YP               "    , 0xFC7, MASK_12B, 0, 0    , 5 , &op_push_yp_cb}, // PUSH_YP
-	{"PUSH YH               "    , 0xFC8, MASK_12B, 0, 0    , 5 , &op_push_yh_cb}, // PUSH_YH
-	{"PUSH YL               "    , 0xFC9, MASK_12B, 0, 0    , 5 , &op_push_yl_cb}, // PUSH_YL
-	{"PUSH F                "    , 0xFCA, MASK_12B, 0, 0    , 5 , &op_push_f_cb}, // PUSH_F
-	{"POP  R(#0x%02X)         "  , 0xFD0, MASK_10B, 0, 0    , 5 , &op_pop_r_cb}, // POP_R
-	{"POP  XP               "    , 0xFD4, MASK_12B, 0, 0    , 5 , &op_pop_xp_cb}, // POP_XP
-	{"POP  XH               "    , 0xFD5, MASK_12B, 0, 0    , 5 , &op_pop_xh_cb}, // POP_XH
-	{"POP  XL               "    , 0xFD6, MASK_12B, 0, 0    , 5 , &op_pop_xl_cb}, // POP_XL
-	{"POP  YP               "    , 0xFD7, MASK_12B, 0, 0    , 5 , &op_pop_yp_cb}, // POP_YP
-	{"POP  YH               "    , 0xFD8, MASK_12B, 0, 0    , 5 , &op_pop_yh_cb}, // POP_YH
-	{"POP  YL               "    , 0xFD9, MASK_12B, 0, 0    , 5 , &op_pop_yl_cb}, // POP_YL
-	{"POP  F                "    , 0xFDA, MASK_12B, 0, 0    , 5 , &op_pop_f_cb}, // POP_F
-	{"LD   SPH R(#0x%02X)     "  , 0xFE0, MASK_10B, 0, 0    , 5 , &op_ld_sph_r_cb}, // LD_SPH_R
-	{"LD   SPL R(#0x%02X)     "  , 0xFF0, MASK_10B, 0, 0    , 5 , &op_ld_spl_r_cb}, // LD_SPL_R
-	{"LD   R(#0x%02X) SPH     "  , 0xFE4, MASK_10B, 0, 0    , 5 , &op_ld_r_sph_cb}, // LD_R_SPH
-	{"LD   R(#0x%02X) SPL     "  , 0xFF4, MASK_10B, 0, 0    , 5 , &op_ld_r_spl_cb}, // LD_R_SPL
-	{"ADD  R(#0x%02X) #0x%02X   ", 0xC00, MASK_6B , 4, 0x030, 7 , &op_add_r_i_cb}, // ADD_R_I
-	{"ADD  R(#0x%02X) Q(#0x%02X)", 0xA80, MASK_8B , 2, 0x00C, 7 , &op_add_r_q_cb}, // ADD_R_Q
-	{"ADC  R(#0x%02X) #0x%02X   ", 0xC40, MASK_6B , 4, 0x030, 7 , &op_adc_r_i_cb}, // ADC_R_I
-	{"ADC  R(#0x%02X) Q(#0x%02X)", 0xA90, MASK_8B , 2, 0x00C, 7 , &op_adc_r_q_cb}, // ADC_R_Q
-	{"SUB  R(#0x%02X) Q(#0x%02X)", 0xAA0, MASK_8B , 2, 0x00C, 7 , &op_sub_cb}, // SUB
-	{"SBC  R(#0x%02X) #0x%02X   ", 0xB40, MASK_6B , 4, 0x030, 7 , &op_sbc_r_i_cb}, // SBC_R_I
-	{"SBC  R(#0x%02X) Q(#0x%02X)", 0xAB0, MASK_8B , 2, 0x00C, 7 , &op_sbc_r_q_cb}, // SBC_R_Q
-	{"AND  R(#0x%02X) #0x%02X   ", 0xC80, MASK_6B , 4, 0x030, 7 , &op_and_r_i_cb}, // AND_R_I
-	{"AND  R(#0x%02X) Q(#0x%02X)", 0xAC0, MASK_8B , 2, 0x00C, 7 , &op_and_r_q_cb}, // AND_R_Q
-	{"OR   R(#0x%02X) #0x%02X   ", 0xCC0, MASK_6B , 4, 0x030, 7 , &op_or_r_i_cb}, // OR_R_I
-	{"OR   R(#0x%02X) Q(#0x%02X)", 0xAD0, MASK_8B , 2, 0x00C, 7 , &op_or_r_q_cb}, // OR_R_Q
-	{"XOR  R(#0x%02X) #0x%02X   ", 0xD00, MASK_6B , 4, 0x030, 7 , &op_xor_r_i_cb}, // XOR_R_I
-	{"XOR  R(#0x%02X) Q(#0x%02X)", 0xAE0, MASK_8B , 2, 0x00C, 7 , &op_xor_r_q_cb}, // XOR_R_Q
-	{"CP   R(#0x%02X) #0x%02X   ", 0xDC0, MASK_6B , 4, 0x030, 7 , &op_cp_r_i_cb}, // CP_R_I
-	{"CP   R(#0x%02X) Q(#0x%02X)", 0xF00, MASK_8B , 2, 0x00C, 7 , &op_cp_r_q_cb}, // CP_R_Q
-	{"FAN  R(#0x%02X) #0x%02X   ", 0xD80, MASK_6B , 4, 0x030, 7 , &op_fan_r_i_cb}, // FAN_R_I
-	{"FAN  R(#0x%02X) Q(#0x%02X)", 0xF10, MASK_8B , 2, 0x00C, 7 , &op_fan_r_q_cb}, // FAN_R_Q
-	{"RLC  R(#0x%02X)         "  , 0xAF0, MASK_8B , 0, 0    , 7 , &op_rlc_cb}, // RLC
-	{"RRC  R(#0x%02X)         "  , 0xE8C, MASK_10B, 0, 0    , 5 , &op_rrc_cb}, // RRC
-	{"INC  M(#0x%02X)         "  , 0xF60, MASK_8B , 0, 0    , 7 , &op_inc_mn_cb}, // INC_MN
-	{"DEC  M(#0x%02X)         "  , 0xF70, MASK_8B , 0, 0    , 7 , &op_dec_mn_cb}, // DEC_MN
-	{"ACPX R(#0x%02X)         "  , 0xF28, MASK_10B, 0, 0    , 7 , &op_acpx_cb}, // ACPX
-	{"ACPY R(#0x%02X)         "  , 0xF2C, MASK_10B, 0, 0    , 7 , &op_acpy_cb}, // ACPY
-	{"SCPX R(#0x%02X)         "  , 0xF38, MASK_10B, 0, 0    , 7 , &op_scpx_cb}, // SCPX
-	{"SCPY R(#0x%02X)         "  , 0xF3C, MASK_10B, 0, 0    , 7 , &op_scpy_cb}, // SCPY
-	{"NOT  R(#0x%02X)         "  , 0xD0F, 0xFCF   , 4, 0    , 7 , &op_not_cb}, // NOT
+#define OP_TABLE(func) \
+func("PSET #0x%02X            "  , 0xE40, MASK_7B , 0, 0    , 5 , pset) /* PSET */ \
+func("JP   #0x%02X            "  , 0x000, MASK_4B , 0, 0    , 5 , jp) /* JP */ \
+func("JP   C #0x%02X          "  , 0x200, MASK_4B , 0, 0    , 5 , jp_c) /* JP_C */ \
+func("JP   NC #0x%02X         "  , 0x300, MASK_4B , 0, 0    , 5 , jp_nc) /* JP_NC */ \
+func("JP   Z #0x%02X          "  , 0x600, MASK_4B , 0, 0    , 5 , jp_z) /* JP_Z */ \
+func("JP   NZ #0x%02X         "  , 0x700, MASK_4B , 0, 0    , 5 , jp_nz) /* JP_NZ */ \
+func("JPBA                  "    , 0xFE8, MASK_12B, 0, 0    , 5 , jpba) /* JPBA */ \
+func("CALL #0x%02X            "  , 0x400, MASK_4B , 0, 0    , 7 , call) /* CALL */ \
+func("CALZ #0x%02X            "  , 0x500, MASK_4B , 0, 0    , 7 , calz) /* CALZ */ \
+func("RET                   "    , 0xFDF, MASK_12B, 0, 0    , 7 , ret) /* RET */ \
+func("RETS                  "    , 0xFDE, MASK_12B, 0, 0    , 12, rets) /* RETS */ \
+func("RETD #0x%02X            "  , 0x100, MASK_4B , 0, 0    , 12, retd) /* RETD */ \
+func("NOP5                  "    , 0xFFB, MASK_12B, 0, 0    , 5 , nop5) /* NOP5 */ \
+func("NOP7                  "    , 0xFFF, MASK_12B, 0, 0    , 7 , nop7) /* NOP7 */ \
+func("HALT                  "    , 0xFF8, MASK_12B, 0, 0    , 5 , halt) /* HALT */ \
+func("INC  X #0x%02X          "  , 0xEE0, MASK_12B, 0, 0    , 5 , inc_x) /* INC_X */ \
+func("INC  Y #0x%02X          "  , 0xEF0, MASK_12B, 0, 0    , 5 , inc_y) /* INC_Y */ \
+func("LD   X #0x%02X          "  , 0xB00, MASK_4B , 0, 0    , 5 , ld_x) /* LD_X */ \
+func("LD   Y #0x%02X          "  , 0x800, MASK_4B , 0, 0    , 5 , ld_y) /* LD_Y */ \
+func("LD   XP R(#0x%02X)      "  , 0xE80, MASK_10B, 0, 0    , 5 , ld_xp_r) /* LD_XP_R */ \
+func("LD   XH R(#0x%02X)      "  , 0xE84, MASK_10B, 0, 0    , 5 , ld_xh_r) /* LD_XH_R */ \
+func("LD   XL R(#0x%02X)      "  , 0xE88, MASK_10B, 0, 0    , 5 , ld_xl_r) /* LD_XL_R */ \
+func("LD   YP R(#0x%02X)      "  , 0xE90, MASK_10B, 0, 0    , 5 , ld_yp_r) /* LD_YP_R */ \
+func("LD   YH R(#0x%02X)      "  , 0xE94, MASK_10B, 0, 0    , 5 , ld_yh_r) /* LD_YH_R */ \
+func("LD   YL R(#0x%02X)      "  , 0xE98, MASK_10B, 0, 0    , 5 , ld_yl_r) /* LD_YL_R */ \
+func("LD   R(#0x%02X) XP      "  , 0xEA0, MASK_10B, 0, 0    , 5 , ld_r_xp) /* LD_R_XP */ \
+func("LD   R(#0x%02X) XH      "  , 0xEA4, MASK_10B, 0, 0    , 5 , ld_r_xh) /* LD_R_XH */ \
+func("LD   R(#0x%02X) XL      "  , 0xEA8, MASK_10B, 0, 0    , 5 , ld_r_xl) /* LD_R_XL */ \
+func("LD   R(#0x%02X) YP      "  , 0xEB0, MASK_10B, 0, 0    , 5 , ld_r_yp) /* LD_R_YP */ \
+func("LD   R(#0x%02X) YH      "  , 0xEB4, MASK_10B, 0, 0    , 5 , ld_r_yh) /* LD_R_YH */ \
+func("LD   R(#0x%02X) YL      "  , 0xEB8, MASK_10B, 0, 0    , 5 , ld_r_yl) /* LD_R_YL */ \
+func("ADC  XH #0x%02X         "  , 0xA00, MASK_8B , 0, 0    , 7 , adc_xh) /* ADC_XH */ \
+func("ADC  XL #0x%02X         "  , 0xA10, MASK_8B , 0, 0    , 7 , adc_xl) /* ADC_XL */ \
+func("ADC  YH #0x%02X         "  , 0xA20, MASK_8B , 0, 0    , 7 , adc_yh) /* ADC_YH */ \
+func("ADC  YL #0x%02X         "  , 0xA30, MASK_8B , 0, 0    , 7 , adc_yl) /* ADC_YL */ \
+func("CP   XH #0x%02X         "  , 0xA40, MASK_8B , 0, 0    , 7 , cp_xh) /* CP_XH */ \
+func("CP   XL #0x%02X         "  , 0xA50, MASK_8B , 0, 0    , 7 , cp_xl) /* CP_XL */ \
+func("CP   YH #0x%02X         "  , 0xA60, MASK_8B , 0, 0    , 7 , cp_yh) /* CP_YH */ \
+func("CP   YL #0x%02X         "  , 0xA70, MASK_8B , 0, 0    , 7 , cp_yl) /* CP_YL */ \
+func("LD   R(#0x%02X) #0x%02X   ", 0xE00, MASK_6B , 4, 0x030, 5 , ld_r_i) /* LD_R_I */ \
+func("LD   R(#0x%02X) Q(#0x%02X)", 0xEC0, MASK_8B , 2, 0x00C, 5 , ld_r_q) /* LD_R_Q */ \
+func("LD   A M(#0x%02X)       "  , 0xFA0, MASK_8B , 0, 0    , 5 , ld_a_mn) /* LD_A_MN */ \
+func("LD   B M(#0x%02X)       "  , 0xFB0, MASK_8B , 0, 0    , 5 , ld_b_mn) /* LD_B_MN */ \
+func("LD   M(#0x%02X) A       "  , 0xF80, MASK_8B , 0, 0    , 5 , ld_mn_a) /* LD_MN_A */ \
+func("LD   M(#0x%02X) B       "  , 0xF90, MASK_8B , 0, 0    , 5 , ld_mn_b) /* LD_MN_B */ \
+func("LDPX MX #0x%02X         "  , 0xE60, MASK_8B , 0, 0    , 5 , ldpx_mx) /* LDPX_MX */ \
+func("LDPX R(#0x%02X) Q(#0x%02X)", 0xEE0, MASK_8B , 2, 0x00C, 5 , ldpx_r) /* LDPX_R */ \
+func("LDPY MY #0x%02X         "  , 0xE70, MASK_8B , 0, 0    , 5 , ldpy_my) /* LDPY_MY */ \
+func("LDPY R(#0x%02X) Q(#0x%02X)", 0xEF0, MASK_8B , 2, 0x00C, 5 , ldpy_r) /* LDPY_R */ \
+func("LBPX #0x%02X            "  , 0x900, MASK_4B , 0, 0    , 5 , lbpx) /* LBPX */ \
+func("SET  #0x%02X            "  , 0xF40, MASK_8B , 0, 0    , 7 , set) /* SET */ \
+func("RST  #0x%02X            "  , 0xF50, MASK_8B , 0, 0    , 7 , rst) /* RST */ \
+func("SCF                   "    , 0xF41, MASK_12B, 0, 0    , 7 , scf) /* SCF */ \
+func("RCF                   "    , 0xF5E, MASK_12B, 0, 0    , 7 , rcf) /* RCF */ \
+func("SZF                   "    , 0xF42, MASK_12B, 0, 0    , 7 , szf) /* SZF */ \
+func("RZF                   "    , 0xF5D, MASK_12B, 0, 0    , 7 , rzf) /* RZF */ \
+func("SDF                   "    , 0xF44, MASK_12B, 0, 0    , 7 , sdf) /* SDF */ \
+func("RDF                   "    , 0xF5B, MASK_12B, 0, 0    , 7 , rdf) /* RDF */ \
+func("EI                    "    , 0xF48, MASK_12B, 0, 0    , 7 , ei) /* EI */ \
+func("DI                    "    , 0xF57, MASK_12B, 0, 0    , 7 , di) /* DI */ \
+func("INC  SP               "    , 0xFDB, MASK_12B, 0, 0    , 5 , inc_sp) /* INC_SP */ \
+func("DEC  SP               "    , 0xFCB, MASK_12B, 0, 0    , 5 , dec_sp) /* DEC_SP */ \
+func("PUSH R(#0x%02X)         "  , 0xFC0, MASK_10B, 0, 0    , 5 , push_r) /* PUSH_R */ \
+func("PUSH XP               "    , 0xFC4, MASK_12B, 0, 0    , 5 , push_xp) /* PUSH_XP */ \
+func("PUSH XH               "    , 0xFC5, MASK_12B, 0, 0    , 5 , push_xh) /* PUSH_XH */ \
+func("PUSH XL               "    , 0xFC6, MASK_12B, 0, 0    , 5 , push_xl) /* PUSH_XL */ \
+func("PUSH YP               "    , 0xFC7, MASK_12B, 0, 0    , 5 , push_yp) /* PUSH_YP */ \
+func("PUSH YH               "    , 0xFC8, MASK_12B, 0, 0    , 5 , push_yh) /* PUSH_YH */ \
+func("PUSH YL               "    , 0xFC9, MASK_12B, 0, 0    , 5 , push_yl) /* PUSH_YL */ \
+func("PUSH F                "    , 0xFCA, MASK_12B, 0, 0    , 5 , push_f) /* PUSH_F */ \
+func("POP  R(#0x%02X)         "  , 0xFD0, MASK_10B, 0, 0    , 5 , pop_r) /* POP_R */ \
+func("POP  XP               "    , 0xFD4, MASK_12B, 0, 0    , 5 , pop_xp) /* POP_XP */ \
+func("POP  XH               "    , 0xFD5, MASK_12B, 0, 0    , 5 , pop_xh) /* POP_XH */ \
+func("POP  XL               "    , 0xFD6, MASK_12B, 0, 0    , 5 , pop_xl) /* POP_XL */ \
+func("POP  YP               "    , 0xFD7, MASK_12B, 0, 0    , 5 , pop_yp) /* POP_YP */ \
+func("POP  YH               "    , 0xFD8, MASK_12B, 0, 0    , 5 , pop_yh) /* POP_YH */ \
+func("POP  YL               "    , 0xFD9, MASK_12B, 0, 0    , 5 , pop_yl) /* POP_YL */ \
+func("POP  F                "    , 0xFDA, MASK_12B, 0, 0    , 5 , pop_f) /* POP_F */ \
+func("LD   SPH R(#0x%02X)     "  , 0xFE0, MASK_10B, 0, 0    , 5 , ld_sph_r) /* LD_SPH_R */ \
+func("LD   SPL R(#0x%02X)     "  , 0xFF0, MASK_10B, 0, 0    , 5 , ld_spl_r) /* LD_SPL_R */ \
+func("LD   R(#0x%02X) SPH     "  , 0xFE4, MASK_10B, 0, 0    , 5 , ld_r_sph) /* LD_R_SPH */ \
+func("LD   R(#0x%02X) SPL     "  , 0xFF4, MASK_10B, 0, 0    , 5 , ld_r_spl) /* LD_R_SPL */ \
+func("ADD  R(#0x%02X) #0x%02X   ", 0xC00, MASK_6B , 4, 0x030, 7 , add_r_i) /* ADD_R_I */ \
+func("ADD  R(#0x%02X) Q(#0x%02X)", 0xA80, MASK_8B , 2, 0x00C, 7 , add_r_q) /* ADD_R_Q */ \
+func("ADC  R(#0x%02X) #0x%02X   ", 0xC40, MASK_6B , 4, 0x030, 7 , adc_r_i) /* ADC_R_I */ \
+func("ADC  R(#0x%02X) Q(#0x%02X)", 0xA90, MASK_8B , 2, 0x00C, 7 , adc_r_q) /* ADC_R_Q */ \
+func("SUB  R(#0x%02X) Q(#0x%02X)", 0xAA0, MASK_8B , 2, 0x00C, 7 , sub) /* SUB */ \
+func("SBC  R(#0x%02X) #0x%02X   ", 0xB40, MASK_6B , 4, 0x030, 7 , sbc_r_i) /* SBC_R_I */ \
+func("SBC  R(#0x%02X) Q(#0x%02X)", 0xAB0, MASK_8B , 2, 0x00C, 7 , sbc_r_q) /* SBC_R_Q */ \
+func("AND  R(#0x%02X) #0x%02X   ", 0xC80, MASK_6B , 4, 0x030, 7 , and_r_i) /* AND_R_I */ \
+func("AND  R(#0x%02X) Q(#0x%02X)", 0xAC0, MASK_8B , 2, 0x00C, 7 , and_r_q) /* AND_R_Q */ \
+func("OR   R(#0x%02X) #0x%02X   ", 0xCC0, MASK_6B , 4, 0x030, 7 , or_r_i) /* OR_R_I */ \
+func("OR   R(#0x%02X) Q(#0x%02X)", 0xAD0, MASK_8B , 2, 0x00C, 7 , or_r_q) /* OR_R_Q */ \
+func("XOR  R(#0x%02X) #0x%02X   ", 0xD00, MASK_6B , 4, 0x030, 7 , xor_r_i) /* XOR_R_I */ \
+func("XOR  R(#0x%02X) Q(#0x%02X)", 0xAE0, MASK_8B , 2, 0x00C, 7 , xor_r_q) /* XOR_R_Q */ \
+func("CP   R(#0x%02X) #0x%02X   ", 0xDC0, MASK_6B , 4, 0x030, 7 , cp_r_i) /* CP_R_I */ \
+func("CP   R(#0x%02X) Q(#0x%02X)", 0xF00, MASK_8B , 2, 0x00C, 7 , cp_r_q) /* CP_R_Q */ \
+func("FAN  R(#0x%02X) #0x%02X   ", 0xD80, MASK_6B , 4, 0x030, 7 , fan_r_i) /* FAN_R_I */ \
+func("FAN  R(#0x%02X) Q(#0x%02X)", 0xF10, MASK_8B , 2, 0x00C, 7 , fan_r_q) /* FAN_R_Q */ \
+func("RLC  R(#0x%02X)         "  , 0xAF0, MASK_8B , 0, 0    , 7 , rlc) /* RLC */ \
+func("RRC  R(#0x%02X)         "  , 0xE8C, MASK_10B, 0, 0    , 5 , rrc) /* RRC */ \
+func("INC  M(#0x%02X)         "  , 0xF60, MASK_8B , 0, 0    , 7 , inc_mn) /* INC_MN */ \
+func("DEC  M(#0x%02X)         "  , 0xF70, MASK_8B , 0, 0    , 7 , dec_mn) /* DEC_MN */ \
+func("ACPX R(#0x%02X)         "  , 0xF28, MASK_10B, 0, 0    , 7 , acpx) /* ACPX */ \
+func("ACPY R(#0x%02X)         "  , 0xF2C, MASK_10B, 0, 0    , 7 , acpy) /* ACPY */ \
+func("SCPX R(#0x%02X)         "  , 0xF38, MASK_10B, 0, 0    , 7 , scpx) /* SCPX */ \
+func("SCPY R(#0x%02X)         "  , 0xF3C, MASK_10B, 0, 0    , 7 , scpy) /* SCPY */ \
+func("NOT  R(#0x%02X)         "  , 0xD0F, 0xFCF   , 4, 0    , 7 , not) /* NOT */
 
+static const op_t ops[] = {
+#define STRUCT_ENTRY(log, code, mask, shift_arg0, mask_arg0, cycles, name) \
+	{ log, code, mask, shift_arg0, mask_arg0, cycles, &op_##name##_cb },
+OP_TABLE(STRUCT_ENTRY)
 	{NULL, 0, 0, 0, 0, 0, NULL},
 };
 
@@ -1546,9 +1564,48 @@ static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
 	return deadline;
 }
 
-static void process_interrupts(void)
+static u32_t check_timer_interrupts(void) {
+	/* Handle timers using the internal tick counter */
+	if (tick_counter - clk_timer_timestamp >= TIMER_1HZ_PERIOD) {
+		do {
+			clk_timer_timestamp += TIMER_1HZ_PERIOD;
+		} while (tick_counter - clk_timer_timestamp >= TIMER_1HZ_PERIOD);
+
+		generate_interrupt(INT_CLOCK_TIMER_SLOT, 3);
+	}
+
+	if (prog_timer_enabled && tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD) {
+		do {
+			prog_timer_timestamp += TIMER_256HZ_PERIOD;
+			prog_timer_data--;
+
+			if (prog_timer_data == 0) {
+				prog_timer_data = prog_timer_rld;
+				generate_interrupt(INT_PROG_TIMER_SLOT, 0);
+			}
+		} while (tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD);
+	}
+	// return the time of the earliest possible next timer interrupt.
+	u32_t next_clk = clk_timer_timestamp + TIMER_1HZ_PERIOD;
+	// if the prog_timer isn't currently enabled, then it can't possibly
+	// happen sooner than TIMER_256HZ_PERIOD from now, since
+	// prog_timer_timestamp will get reset when the prog_timer is enabled
+	u32_t next_prog =
+		(prog_timer_enabled ? prog_timer_timestamp : tick_counter) +
+		TIMER_256HZ_PERIOD;
+	return next_clk < next_prog ? next_clk : next_prog;
+}
+
+static int process_interrupts(void)
 {
 	u8_t i;
+	// When we return, interrupt_asserted will be false: either there
+	// wasn't really an interrupt, or else we'll have cleared I
+	interrupt_asserted = 0;
+
+	if (!I) {
+		return 0; // Interrupts aren't enabled
+	}
 
 	/* Process interrupts in priority order */
 	for (i = 0; i < INT_SLOT_NUM; i++) {
@@ -1565,8 +1622,10 @@ static void process_interrupts(void)
 
 			ref_ts = wait_for_cycles(ref_ts, 12);
 			interrupts[i].triggered = 0;
+			return 1;
 		}
 	}
+	return 0; // no interrupts after all.
 }
 
 static void print_state(u8_t op_num, u12_t op, u13_t addr)
@@ -1575,6 +1634,14 @@ static void print_state(u8_t op_num, u12_t op, u13_t addr)
 
 	if (!g_hal->is_log_enabled(LOG_CPU)) {
 		return;
+	}
+	if (op_num == 0) {
+		for (i = 0; ops[i].log != NULL; i++) {
+			if ((op & ops[i].mask) == ops[i].code) {
+				op_num = i;
+				break;
+			}
+		}
 	}
 
 	g_hal->log(LOG_CPU, "0x%04X: ", addr);
@@ -1640,6 +1707,145 @@ void cpu_release(void)
 {
 }
 
+void *threaded_program[PROGRAM_SIZE] = { 0 };
+uint8_t threaded_arg0[PROGRAM_SIZE];
+uint8_t threaded_arg1[PROGRAM_SIZE];
+uint8_t threaded_cycles[PROGRAM_SIZE];
+
+int cpu_fast_step() {
+	static void *threaded_ops[] = {
+#define LABEL_ENTRY(log, code, mask, shift_arg0, mask_arg0, cycles, name) \
+		&&l_##name,
+OP_TABLE(LABEL_ENTRY)
+	};
+	uint8_t arg0 = 0, arg1 = 0;
+	// Precompute and cache some stuff that's not going to change
+	// before this step is over.
+	bool_t skip_first_breakpoint = 0;
+	bool_t log_enabled = g_hal->is_log_enabled(LOG_CPU);
+	bool_t fast_as_possible = (speed_ratio == 0);
+	timestamp_t adj_cycles_5 = 0, adj_cycles_7 = 0, adj_cycles_12 = 0;
+	if (!fast_as_possible) {
+		adj_cycles_5 = (5 * ts_freq) / (TICK_FREQUENCY * speed_ratio);
+		adj_cycles_7 = (7 * ts_freq) / (TICK_FREQUENCY * speed_ratio);
+		adj_cycles_12 = (12 * ts_freq) / (TICK_FREQUENCY * speed_ratio);
+	}
+	// We might have saved/loaded state before calling this, so interrupt
+	// asserted might not be valid.  Set it on the first step to
+	// re-validate.
+	interrupt_asserted = 1;
+	// Ditto for soonest_interrupt; ensure we re-validate it on first step.
+	u32_t soonest_interrupt = tick_counter;
+
+	if (threaded_program[0] == NULL) {
+		/* init */
+		for (int i=0; i<PROGRAM_SIZE; i++) {
+			threaded_program[i] = &&l_decode;
+		}
+	} else {
+		// Use l_decode to mark breakpoints; this has the advantage that
+		// they will transparently be replaced with the proper decoded
+		// label if breakpoints change the next time this is called.
+		for (breakpoint_t *bp = g_breakpoints; bp!=NULL; bp = bp->next) {
+			threaded_program[bp->addr] = &&l_decode;
+			if (pc == bp->addr) {
+				skip_first_breakpoint = 1;
+			}
+		}
+	}
+	goto *(threaded_program[pc]);
+
+	l_decode:
+	{
+		u12_t op = g_program[pc];
+		void *decoded_op;
+		int i;
+		// Is this a breakpoint? (but we can step through first breakpoint)
+		if (!skip_first_breakpoint) {
+			for (breakpoint_t *bp = g_breakpoints; bp!=NULL; bp = bp->next) {
+				if (pc==bp->addr) {
+					goto l_bailout;
+				}
+			}
+		}
+		/* Lookup the OP code */
+		for (i = 0; ops[i].log != NULL; i++) {
+			if ((op & ops[i].mask) == ops[i].code) {
+				break;
+			}
+		}
+		if (ops[i].log == NULL) {
+			goto l_bailout; // Illegal operation
+		}
+		threaded_program[pc] = decoded_op = threaded_ops[i];
+		if (ops[i].cb != NULL) {
+			if (ops[i].mask_arg0 != 0) {
+				/* Two arguments */
+				threaded_arg0[pc] = (op & ops[i].mask_arg0) >> ops[i].shift_arg0;
+				threaded_arg1[pc] = op & ~(ops[i].mask | ops[i].mask_arg0);
+			} else {
+				threaded_arg0[pc] = (op & ~ops[i].mask) >> ops[i].shift_arg0;
+				threaded_arg1[pc] = 0;
+			}
+		}
+		if (skip_first_breakpoint) {
+			skip_first_breakpoint = 0;
+			threaded_program[pc] = &&l_decode;
+		}
+		// now dispatch to that decoded op.
+		goto *decoded_op;
+	}
+
+#define OP_IMPL(log, code, mask, shift_arg0, mask_arg0, cycles, name) \
+	l_##name:														  \
+		if (log_enabled) {											  \
+			print_state(0, g_program[pc], pc);						  \
+		}															  \
+		next_pc = (pc + 1) & 0x1FFF;								  \
+		arg0 = threaded_arg0[pc];									  \
+		if (mask_arg0 != 0) {										  \
+			arg1 = threaded_arg1[pc];								  \
+		}															  \
+		/* This is an unrolled version of wait_for_cycles */          \
+		if (!fast_as_possible) {									  \
+			timestamp_t deadline = ref_ts + adj_cycles_##cycles;	  \
+			g_hal->sleep_until(deadline);						      \
+			ref_ts = deadline;										  \
+		}															  \
+		/* We sleep_until just *before* execution so that we're in */ \
+		/* a consistent architectural state in case we save/load */	  \
+		/* state from within sleep_until(). */						  \
+		tick_counter += cycles;										  \
+		op_##name##_cb(arg0, arg1);									  \
+		pc = next_pc;												  \
+		if (code != 0xE40) {										  \
+			/* OP code is not PSET, reset NP */						  \
+			np = (pc >> 8) & 0x1F;									  \
+		}															  \
+		if (tick_counter >= soonest_interrupt) {					  \
+			soonest_interrupt = check_timer_interrupts();			  \
+		}															  \
+		if (interrupt_asserted && code != 0xE40) {					  \
+			if (process_interrupts()) {								  \
+				goto l_finish_step;									  \
+			}														  \
+		}															  \
+		goto *(threaded_program[pc]);
+OP_TABLE(OP_IMPL)
+
+	l_finish_step:
+	if (fast_as_possible) {
+		ref_ts = g_hal->get_timestamp();
+	}
+	return 0;
+
+	l_bailout:
+	if (fast_as_possible) {
+		ref_ts = g_hal->get_timestamp();
+	}
+	return 1;
+}
+
 int cpu_step(void)
 {
 	u12_t op;
@@ -1693,28 +1899,10 @@ int cpu_step(void)
 	}
 
 	/* Handle timers using the internal tick counter */
-	if (tick_counter - clk_timer_timestamp >= TIMER_1HZ_PERIOD) {
-		do {
-			clk_timer_timestamp += TIMER_1HZ_PERIOD;
-		} while (tick_counter - clk_timer_timestamp >= TIMER_1HZ_PERIOD);
-
-		generate_interrupt(INT_CLOCK_TIMER_SLOT, 3);
-	}
-
-	if (prog_timer_enabled && tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD) {
-		do {
-			prog_timer_timestamp += TIMER_256HZ_PERIOD;
-			prog_timer_data--;
-
-			if (prog_timer_data == 0) {
-				prog_timer_data = prog_timer_rld;
-				generate_interrupt(INT_PROG_TIMER_SLOT, 0);
-			}
-		} while (tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD);
-	}
+	check_timer_interrupts();
 
 	/* Check if there is any pending interrupt */
-	if (I && i > 0) { // Do not process interrupts after a PSET operation
+	if (i > 0) { // Do not process interrupts after a PSET operation
 		process_interrupts();
 	}
 

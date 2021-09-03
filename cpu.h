@@ -105,5 +105,6 @@ bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq);
 void cpu_release(void);
 
 int cpu_step(void);
+int cpu_fast_step(void);
 
 #endif /* _CPU_H_ */
