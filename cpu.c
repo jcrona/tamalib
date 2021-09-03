@@ -614,7 +614,7 @@ static void set_memory(u12_t n, u4_t v)
 
 void cpu_refresh_hw(void)
 {
-	const struct range {
+	static const struct range {
 		u12_t addr;
 		u12_t size;
 	} refresh_locs[] = {
