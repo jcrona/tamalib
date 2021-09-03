@@ -212,7 +212,7 @@ static void generate_interrupt(int_slot_t slot, u8_t bit)
 	/* Set the factor flag no matter what */
 	interrupts[slot].factor_flag_reg = interrupts[slot].factor_flag_reg | (0x1 << bit);
 
-	/* Trigger the INT only if not maked */
+	/* Trigger the INT only if not masked */
 	if (interrupts[slot].mask_reg & (0x1 << bit)) {
 		interrupts[slot].triggered = 1;
 	}
@@ -393,7 +393,7 @@ static void set_io(u12_t n, u4_t v)
 
 		case 0xF11:
 			/* Stopwatch interrupt masks */
-			/* Asumme all INT disabled */
+			/* Assume all INT disabled */
 			interrupts[INT_STOPWATCH_SLOT].mask_reg = v;
 			break;
 
@@ -405,19 +405,19 @@ static void set_io(u12_t n, u4_t v)
 
 		case 0xF13:
 			/* Serial interface interrupt masks */
-			/* Asumme all INT disabled */
+			/* Assume all INT disabled */
 			interrupts[INT_K10_K13_SLOT].mask_reg = v;
 			break;
 
 		case 0xF14:
 			/* Input (K00-K03) interrupt masks */
-			/* Asumme all INT disabled */
+			/* Assume all INT disabled */
 			interrupts[INT_SERIAL_SLOT].mask_reg = v;
 			break;
 
 		case 0xF15:
 			/* Input (K10-K13) interrupt masks */
-			/* Asumme all INT disabled */
+			/* Assume all INT disabled */
 			interrupts[INT_K10_K13_SLOT].mask_reg = v;
 			break;
 
@@ -1663,10 +1663,10 @@ int cpu_step(void)
 
 	next_pc = (pc + 1) & 0x1FFF;
 
-	/* Display operation along with the current state of the processor */
+	/* Display the operation along with the current state of the processor */
 	print_state(i, op, pc);
 
-        /* Match the speed of the real processor
+	/* Match the speed of the real processor
 	 * NOTE: For better accuracy, the final wait should happen here, however
 	 * the downside is that all interrupts will likely be delayed by one OP
 	 */
