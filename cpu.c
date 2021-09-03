@@ -76,6 +76,45 @@
 #define SET_I()					{flags |= FLAG_I;}
 #define CLEAR_I()				{flags &= ~FLAG_I;}
 
+#define MEM_RAM_ADDR				0x000
+#define MEM_RAM_SIZE				0x280
+#define MEM_DISPLAY1_ADDR			0xE00
+#define MEM_DISPLAY1_SIZE			0x050
+#define MEM_DISPLAY2_ADDR			0xE80
+#define MEM_DISPLAY2_SIZE			0x050
+#define MEM_IO_ADDR				0xF00
+#define MEM_IO_SIZE				0x080
+
+#define REG_CLK_INT_FACTOR_FLAGS		0xF00
+#define REG_SW_INT_FACTOR_FLAGS			0xF01
+#define REG_PROG_INT_FACTOR_FLAGS		0xF02
+#define REG_SERIAL_INT_FACTOR_FLAGS		0xF03
+#define REG_K00_K03_INT_FACTOR_FLAGS		0xF04
+#define REG_K10_K13_INT_FACTOR_FLAGS		0xF05
+#define REG_CLOCK_INT_MASKS			0xF10
+#define REG_SW_INT_MASKS			0xF11
+#define REG_PROG_INT_MASKS			0xF12
+#define REG_SERIAL_INT_MASKS			0xF13
+#define REG_K00_K03_INT_MASKS			0xF14
+#define REG_K10_K13_INT_MASKS			0xF15
+#define REG_PROG_TIMER_DATA_L			0xF24
+#define REG_PROG_TIMER_DATA_H			0xF25
+#define REG_PROG_TIMER_RELOAD_DATA_L		0xF26
+#define REG_PROG_TIMER_RELOAD_DATA_H		0xF27
+#define REG_K00_K03_INPUT_PORT			0xF40
+#define REG_K10_K13_INPUT_PORT			0xF42
+#define REG_K40_K43_BZ_OUTPUT_PORT		0xF54
+#define REG_CPU_OSC3_CTRL			0xF70
+#define REG_LCD_CTRL				0xF71
+#define REG_LCD_CONTRAST			0xF72
+#define REG_SVD_CTRL				0xF73
+#define REG_BUZZER_CTRL1			0xF74
+#define REG_BUZZER_CTRL2			0xF75
+#define REG_CLK_WD_TIMER_CTRL			0xF76
+#define REG_SW_TIMER_CTRL			0xF77
+#define REG_PROG_TIMER_CTRL			0xF78
+#define REG_PROG_TIMER_CLK_SEL			0xF79
+
 #define INPUT_PORT_NUM				2
 
 typedef struct {
@@ -247,131 +286,131 @@ static u4_t get_io(u12_t n)
 	u4_t tmp;
 
 	switch (n) {
-		case 0xF00:
+		case REG_CLK_INT_FACTOR_FLAGS:
 			/* Interrupt factor flags (clock timer) */
 			tmp = interrupts[INT_CLOCK_TIMER_SLOT].factor_flag_reg;
 			interrupts[INT_CLOCK_TIMER_SLOT].factor_flag_reg = 0;
 			return tmp;
 
-		case 0xF01:
+		case REG_SW_INT_FACTOR_FLAGS:
 			/* Interrupt factor flags (stopwatch) */
 			tmp = interrupts[INT_STOPWATCH_SLOT].factor_flag_reg;
 			interrupts[INT_STOPWATCH_SLOT].factor_flag_reg = 0;
 			return tmp;
 
-		case 0xF02:
+		case REG_PROG_INT_FACTOR_FLAGS:
 			/* Interrupt factor flags (prog timer) */
 			tmp = interrupts[INT_PROG_TIMER_SLOT].factor_flag_reg;
 			interrupts[INT_PROG_TIMER_SLOT].factor_flag_reg = 0;
 			return tmp;
 
-		case 0xF03:
+		case REG_SERIAL_INT_FACTOR_FLAGS:
 			/* Interrupt factor flags (serial) */
 			tmp = interrupts[INT_SERIAL_SLOT].factor_flag_reg;
 			interrupts[INT_SERIAL_SLOT].factor_flag_reg = 0;
 			return tmp;
 
-		case 0xF04:
+		case REG_K00_K03_INT_FACTOR_FLAGS:
 			/* Interrupt factor flags (K00-K03) */
 			tmp = interrupts[INT_K00_K03_SLOT].factor_flag_reg;
 			interrupts[INT_K00_K03_SLOT].factor_flag_reg = 0;
 			return tmp;
 
-		case 0xF05:
+		case REG_K10_K13_INT_FACTOR_FLAGS:
 			/* Interrupt factor flags (K10-K13) */
 			tmp = interrupts[INT_K10_K13_SLOT].factor_flag_reg;
 			interrupts[INT_K10_K13_SLOT].factor_flag_reg = 0;
 			return tmp;
 
-		case 0xF10:
+		case REG_CLOCK_INT_MASKS:
 			/* Clock timer interrupt masks */
 			return interrupts[INT_CLOCK_TIMER_SLOT].mask_reg;
 
-		case 0xF11:
+		case REG_SW_INT_MASKS:
 			/* Stopwatch interrupt masks */
 			return interrupts[INT_STOPWATCH_SLOT].mask_reg & 0x3;
 
-		case 0xF12:
+		case REG_PROG_INT_MASKS:
 			/* Prog timer interrupt masks */
 			return interrupts[INT_PROG_TIMER_SLOT].mask_reg & 0x1;
 
-		case 0xF13:
+		case REG_SERIAL_INT_MASKS:
 			/* Serial interface interrupt masks */
 			return interrupts[INT_SERIAL_SLOT].mask_reg & 0x1;
 
-		case 0xF14:
+		case REG_K00_K03_INT_MASKS:
 			/* Input (K00-K03) interrupt masks */
 			return interrupts[INT_K00_K03_SLOT].mask_reg;
 
-		case 0xF15:
+		case REG_K10_K13_INT_MASKS:
 			/* Input (K10-K13) interrupt masks */
 			return interrupts[INT_K10_K13_SLOT].mask_reg;
 
-		case 0xF24:
+		case REG_PROG_TIMER_DATA_L:
 			/* Prog timer data (low) */
 			return prog_timer_data & 0xF;
 
-		case 0xF25:
+		case REG_PROG_TIMER_DATA_H:
 			/* Prog timer data (high) */
 			return (prog_timer_data >> 4) & 0xF;
 
-		case 0xF26:
+		case REG_PROG_TIMER_RELOAD_DATA_L:
 			/* Prog timer reload data (low) */
 			return prog_timer_rld & 0xF;
 
-		case 0xF27:
+		case REG_PROG_TIMER_RELOAD_DATA_H:
 			/* Prog timer reload data (high) */
 			return (prog_timer_rld >> 4) & 0xF;
 
-		case 0xF40:
+		case REG_K00_K03_INPUT_PORT:
 			/* Input port (K00-K03) */
 			return inputs[0].states;
 
-		case 0xF42:
+		case REG_K10_K13_INPUT_PORT:
 			/* Input port (K10-K13) */
 			return inputs[1].states;
 
-		case 0xF54:
+		case REG_K40_K43_BZ_OUTPUT_PORT:
 			/* Output port (R40-R43) */
 			return memory[n];
 
-		case 0xF70:
+		case REG_CPU_OSC3_CTRL:
 			/* CPU/OSC3 clocks switch, CPU voltage switch */
 			return memory[n];
 
-		case 0xF71:
+		case REG_LCD_CTRL:
 			/* LCD control */
 			return memory[n];
 
-		case 0xF72:
+		case REG_LCD_CONTRAST:
 			/* LCD contrast */
 			break;
 
-		case 0xF73:
+		case REG_SVD_CTRL:
 			/* SVD */
 			return memory[n] & 0x7; // Voltage always OK
 
-		case 0xF74:
+		case REG_BUZZER_CTRL1:
 			/* Buzzer config 1 */
 			return memory[n];
 
-		case 0xF75:
+		case REG_BUZZER_CTRL2:
 			/* Buzzer config 2 */
 			return memory[n] & 0x3; // Buzzer ready
 
-		case 0xF76:
+		case REG_CLK_WD_TIMER_CTRL:
 			/* Clock/Watchdog timer reset */
 			break;
 
-		case 0xF77:
+		case REG_SW_TIMER_CTRL:
 			/* Stopwatch stop/run/reset */
 			break;
 
-		case 0xF78:
+		case REG_PROG_TIMER_CTRL:
 			/* Prog timer stop/run/reset */
 			return !!prog_timer_enabled;
 
-		case 0xF79:
+		case REG_PROG_TIMER_CLK_SEL:
 			/* Prog timer clock selection */
 			break;
 
@@ -385,101 +424,101 @@ static u4_t get_io(u12_t n)
 static void set_io(u12_t n, u4_t v)
 {
 	switch (n) {
-		case 0xF10:
+		case REG_CLOCK_INT_MASKS:
 			/* Clock timer interrupt masks */
 			/* Assume 1Hz timer INT enabled (0x8) */
 			interrupts[INT_CLOCK_TIMER_SLOT].mask_reg = v;
 			break;
 
-		case 0xF11:
+		case REG_SW_INT_MASKS:
 			/* Stopwatch interrupt masks */
 			/* Assume all INT disabled */
 			interrupts[INT_STOPWATCH_SLOT].mask_reg = v;
 			break;
 
-		case 0xF12:
+		case REG_PROG_INT_MASKS:
 			/* Prog timer interrupt masks */
 			/* Assume Prog timer INT enabled (0x1) */
 			interrupts[INT_PROG_TIMER_SLOT].mask_reg = v;
 			break;
 
-		case 0xF13:
+		case REG_SERIAL_INT_MASKS:
 			/* Serial interface interrupt masks */
 			/* Assume all INT disabled */
 			interrupts[INT_K10_K13_SLOT].mask_reg = v;
 			break;
 
-		case 0xF14:
+		case REG_K00_K03_INT_MASKS:
 			/* Input (K00-K03) interrupt masks */
 			/* Assume all INT disabled */
 			interrupts[INT_SERIAL_SLOT].mask_reg = v;
 			break;
 
-		case 0xF15:
+		case REG_K10_K13_INT_MASKS:
 			/* Input (K10-K13) interrupt masks */
 			/* Assume all INT disabled */
 			interrupts[INT_K10_K13_SLOT].mask_reg = v;
 			break;
 
-		case 0xF26:
+		case REG_PROG_TIMER_RELOAD_DATA_L:
 			/* Prog timer reload data (low) */
 			prog_timer_rld = v | (prog_timer_rld & 0xF0);
 			break;
 
-		case 0xF27:
+		case REG_PROG_TIMER_RELOAD_DATA_H:
 			/* Prog timer reload data (high) */
 			prog_timer_rld = (prog_timer_rld & 0xF) | (v << 4);
 			break;
 
-		case 0xF40:
+		case REG_K00_K03_INPUT_PORT:
 			/* Input port (K00-K03) */
 			/* Write not allowed */
 			break;
 
-		case 0xF54:
+		case REG_K40_K43_BZ_OUTPUT_PORT:
 			/* Output port (R40-R43) */
 			//g_hal->log(LOG_INFO, "Output/Buzzer: 0x%X\n", v);
 			hw_enable_buzzer(!(v & 0x8));
 			break;
 
-		case 0xF70:
+		case REG_CPU_OSC3_CTRL:
 			/* CPU/OSC3 clocks switch, CPU voltage switch */
 			/* Assume 32,768 OSC1 selected, OSC3 off, battery >= 3,1V (0x1) */
 			break;
 
-		case 0xF71:
+		case REG_LCD_CTRL:
 			/* LCD control */
 			break;
 
-		case 0xF72:
+		case REG_LCD_CONTRAST:
 			/* LCD contrast */
 			/* Assume medium contrast (0x8) */
 			break;
 
-		case 0xF73:
+		case REG_SVD_CTRL:
 			/* SVD */
 			/* Assume battery voltage always OK (0x6) */
 			break;
 
-		case 0xF74:
+		case REG_BUZZER_CTRL1:
 			/* Buzzer config 1 */
 			hw_set_buzzer_freq(v & 0x7);
 			break;
 
-		case 0xF75:
+		case REG_BUZZER_CTRL2:
 			/* Buzzer config 2 */
 			break;
 
-		case 0xF76:
+		case REG_CLK_WD_TIMER_CTRL:
 			/* Clock/Watchdog timer reset */
 			/* Ignore watchdog */
 			break;
 
-		case 0xF77:
+		case REG_SW_TIMER_CTRL:
 			/* Stopwatch stop/run/reset */
 			break;
 
-		case 0xF78:
+		case REG_PROG_TIMER_CTRL:
 			/* Prog timer stop/run/reset */
 			if (v & 0x2) {
 				prog_timer_data = prog_timer_rld;
@@ -492,7 +531,7 @@ static void set_io(u12_t n, u4_t v)
 			prog_timer_enabled = v & 0x1;
 			break;
 
-		case 0xF79:
+		case REG_PROG_TIMER_CLK_SEL:
 			/* Prog timer clock selection */
 			/* Assume 256Hz, output disabled */
 			break;
@@ -519,19 +558,19 @@ static u4_t get_memory(u12_t n)
 {
 	u4_t res = 0;
 
-	if (n < 0x280) {
+	if (n < MEM_RAM_SIZE) {
 		/* RAM */
 		g_hal->log(LOG_MEMORY, "RAM              - ");
 		res = memory[n];
-	} else if (n >= 0xE00 && n < 0xE50) {
+	} else if (n >= MEM_DISPLAY1_ADDR && n < (MEM_DISPLAY1_ADDR + MEM_DISPLAY1_SIZE)) {
 		/* Display Memory 1 */
 		g_hal->log(LOG_MEMORY, "Display Memory 1 - ");
 		res = memory[n];
-	} else if (n >= 0xE80 && n < 0xED0) {
+	} else if (n >= MEM_DISPLAY2_ADDR && n < (MEM_DISPLAY2_ADDR + MEM_DISPLAY2_SIZE)) {
 		/* Display Memory 2 */
 		g_hal->log(LOG_MEMORY, "Display Memory 2 - ");
 		res = memory[n];
-	} else if (n >= 0xF00 && n < 0xF80) {
+	} else if (n >= MEM_IO_ADDR && n < (MEM_IO_ADDR + MEM_IO_SIZE)) {
 		/* I/O Memory */
 		g_hal->log(LOG_MEMORY, "I/O              - ");
 		res = get_io(n);
@@ -547,18 +586,18 @@ static u4_t get_memory(u12_t n)
 
 static void set_memory(u12_t n, u4_t v)
 {
-	if (n < 0x280) {
+	if (n < MEM_RAM_SIZE) {
 		/* RAM */
 		g_hal->log(LOG_MEMORY, "RAM              - ");
-	} else if (n >= 0xE00 && n < 0xE50) {
+	} else if (n >= MEM_DISPLAY1_ADDR && n < (MEM_DISPLAY1_ADDR + MEM_DISPLAY1_SIZE)) {
 		/* Display Memory 1 */
 		set_lcd(n, v);
 		g_hal->log(LOG_MEMORY, "Display Memory 1 - ");
-	} else if (n >= 0xE80 && n < 0xED0) {
+	} else if (n >= MEM_DISPLAY2_ADDR && n < (MEM_DISPLAY2_ADDR + MEM_DISPLAY2_SIZE)) {
 		/* Display Memory 2 */
 		set_lcd(n, v);
 		g_hal->log(LOG_MEMORY, "Display Memory 2 - ");
-	} else if (n >= 0xF00 && n < 0xF80) {
+	} else if (n >= MEM_IO_ADDR && n < (MEM_IO_ADDR + MEM_IO_SIZE)) {
 		/* I/O Memory */
 		set_io(n, v);
 		g_hal->log(LOG_MEMORY, "I/O              - ");
@@ -576,19 +615,19 @@ static void set_memory(u12_t n, u4_t v)
 void cpu_refresh_hw(void)
 {
 	const struct range {
-		u12_t from;
-		u12_t to;
+		u12_t addr;
+		u12_t size;
 	} refresh_locs[] = {
-		{ 0xE00, 0xE4F }, /* Display Memory 1 */
-		{ 0xE80, 0xECF }, /* Display Memory 2 */
-		{ 0xF74, 0xF74 }, /* Buzzer frequency */
-		{ 0xF54, 0xF54 }, /* Buzzer enabled */
+		{ MEM_DISPLAY1_ADDR, MEM_DISPLAY1_SIZE }, /* Display Memory 1 */
+		{ MEM_DISPLAY2_ADDR, MEM_DISPLAY2_SIZE }, /* Display Memory 2 */
+		{ REG_BUZZER_CTRL1, 1 }, /* Buzzer frequency */
+		{ REG_K40_K43_BZ_OUTPUT_PORT, 1 }, /* Buzzer enabled */
 
 		{ 0, 0 }, // end of list
 	};
 
-	for (int i = 0; refresh_locs[i].to != 0; i++) {
-		for (u12_t n = refresh_locs[i].from; n <= refresh_locs[i].to; n++) {
+	for (int i = 0; refresh_locs[i].size != 0; i++) {
+		for (u12_t n = refresh_locs[i].addr; n < (refresh_locs[i].addr + refresh_locs[i].size); n++) {
 			set_memory(n, memory[n]);
 		}
 	}
@@ -1644,8 +1683,8 @@ bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
 		memory[i] = 0;
 	}
 
-	memory[0xF54] = 0xF; // Output port (R40-R43)
-	memory[0xF71] = 0x8; // LCD control
+	memory[REG_K40_K43_BZ_OUTPUT_PORT] = 0xF; // Output port (R40-R43)
+	memory[REG_LCD_CTRL] = 0x8; // LCD control
 	/* TODO: Input relation register */
 
 	g_program = program;
