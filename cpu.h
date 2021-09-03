@@ -20,8 +20,6 @@
 #ifndef _CPU_H_
 #define _CPU_H_
 
-#include <stdint.h>
-
 #include "hal.h"
 
 #define MEMORY_SIZE				4096 // 4096 x 4 bits (640 x 4 bits of RAM)
