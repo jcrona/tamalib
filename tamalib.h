@@ -31,6 +31,8 @@
 #define tamalib_get_state()				cpu_get_state()
 #define tamalib_refresh_hw()				cpu_refresh_hw()
 
+#define tamalib_reset()					cpu_reset()
+
 #define tamalib_add_bp(list, addr)			cpu_add_bp(list, addr)
 #define tamalib_free_bp(list)				cpu_free_bp(list)
 

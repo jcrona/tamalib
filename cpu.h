@@ -103,6 +103,8 @@ void cpu_sync_ref_timestamp(void);
 
 void cpu_refresh_hw(void);
 
+void cpu_reset(void);
+
 bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq);
 void cpu_release(void);
 

@@ -1664,7 +1664,7 @@ static void print_state(u8_t op_num, u12_t op, u13_t addr)
 	g_hal->log(LOG_CPU, " - PC = 0x%04X, SP = 0x%02X, NP = 0x%02X, X = 0x%03X, Y = 0x%03X, A = 0x%X, B = 0x%X, F = 0x%X\n", pc, sp, np, x, y, a, b, flags);
 }
 
-bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
+void cpu_reset(void)
 {
 	u13_t i;
 
@@ -1687,11 +1687,16 @@ bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
 	memory[REG_LCD_CTRL] = 0x8; // LCD control
 	/* TODO: Input relation register */
 
+	cpu_sync_ref_timestamp();
+}
+
+bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
+{
 	g_program = program;
 	g_breakpoints = breakpoints;
-
 	ts_freq = freq;
-	cpu_sync_ref_timestamp();
+
+	cpu_reset();
 
 	return 0;
 }
