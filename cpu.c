@@ -76,15 +76,6 @@
 #define SET_I()					{flags |= FLAG_I;}
 #define CLEAR_I()				{flags &= ~FLAG_I;}
 
-#define MEM_RAM_ADDR				0x000
-#define MEM_RAM_SIZE				0x280
-#define MEM_DISPLAY1_ADDR			0xE00
-#define MEM_DISPLAY1_SIZE			0x050
-#define MEM_DISPLAY2_ADDR			0xE80
-#define MEM_DISPLAY2_SIZE			0x050
-#define MEM_IO_ADDR				0xF00
-#define MEM_IO_SIZE				0x080
-
 #define REG_CLK_INT_FACTOR_FLAGS		0xF00
 #define REG_SW_INT_FACTOR_FLAGS			0xF01
 #define REG_PROG_INT_FACTOR_FLAGS		0xF02
