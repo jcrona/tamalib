@@ -133,7 +133,7 @@ static u8_t sp;
 static u4_t flags;
 
 static const u12_t *g_program = NULL;
-static u4_t memory[MEMORY_SIZE];
+static MEM_BUFFER_TYPE memory[MEM_BUFFER_SIZE];
 
 static input_port_t inputs[INPUT_PORT_NUM] = {{0}};
 
@@ -363,15 +363,15 @@ static u4_t get_io(u12_t n)
 
 		case REG_K40_K43_BZ_OUTPUT_PORT:
 			/* Output port (R40-R43) */
-			return memory[n];
+			return GET_IO_MEMORY(memory, n);
 
 		case REG_CPU_OSC3_CTRL:
 			/* CPU/OSC3 clocks switch, CPU voltage switch */
-			return memory[n];
+			return GET_IO_MEMORY(memory, n);
 
 		case REG_LCD_CTRL:
 			/* LCD control */
-			return memory[n];
+			return GET_IO_MEMORY(memory, n);
 
 		case REG_LCD_CONTRAST:
 			/* LCD contrast */
@@ -379,15 +379,15 @@ static u4_t get_io(u12_t n)
 
 		case REG_SVD_CTRL:
 			/* SVD */
-			return memory[n] & 0x7; // Voltage always OK
+			return GET_IO_MEMORY(memory, n) & 0x7; // Voltage always OK
 
 		case REG_BUZZER_CTRL1:
 			/* Buzzer config 1 */
-			return memory[n];
+			return GET_IO_MEMORY(memory, n);
 
 		case REG_BUZZER_CTRL2:
 			/* Buzzer config 2 */
-			return memory[n] & 0x3; // Buzzer ready
+			return GET_IO_MEMORY(memory, n) & 0x3; // Buzzer ready
 
 		case REG_CLK_WD_TIMER_CTRL:
 			/* Clock/Watchdog timer reset */
@@ -552,15 +552,15 @@ static u4_t get_memory(u12_t n)
 	if (n < MEM_RAM_SIZE) {
 		/* RAM */
 		g_hal->log(LOG_MEMORY, "RAM              - ");
-		res = memory[n];
+		res = GET_RAM_MEMORY(memory, n);
 	} else if (n >= MEM_DISPLAY1_ADDR && n < (MEM_DISPLAY1_ADDR + MEM_DISPLAY1_SIZE)) {
 		/* Display Memory 1 */
 		g_hal->log(LOG_MEMORY, "Display Memory 1 - ");
-		res = memory[n];
+		res = GET_DISP1_MEMORY(memory, n);
 	} else if (n >= MEM_DISPLAY2_ADDR && n < (MEM_DISPLAY2_ADDR + MEM_DISPLAY2_SIZE)) {
 		/* Display Memory 2 */
 		g_hal->log(LOG_MEMORY, "Display Memory 2 - ");
-		res = memory[n];
+		res = GET_DISP2_MEMORY(memory, n);
 	} else if (n >= MEM_IO_ADDR && n < (MEM_IO_ADDR + MEM_IO_SIZE)) {
 		/* I/O Memory */
 		g_hal->log(LOG_MEMORY, "I/O              - ");
@@ -577,28 +577,30 @@ static u4_t get_memory(u12_t n)
 
 static void set_memory(u12_t n, u4_t v)
 {
+	/* Cache any data written to a valid address, and process it */
 	if (n < MEM_RAM_SIZE) {
 		/* RAM */
+		SET_RAM_MEMORY(memory, n, v);
 		g_hal->log(LOG_MEMORY, "RAM              - ");
 	} else if (n >= MEM_DISPLAY1_ADDR && n < (MEM_DISPLAY1_ADDR + MEM_DISPLAY1_SIZE)) {
 		/* Display Memory 1 */
+		SET_DISP1_MEMORY(memory, n, v);
 		set_lcd(n, v);
 		g_hal->log(LOG_MEMORY, "Display Memory 1 - ");
 	} else if (n >= MEM_DISPLAY2_ADDR && n < (MEM_DISPLAY2_ADDR + MEM_DISPLAY2_SIZE)) {
 		/* Display Memory 2 */
+		SET_DISP2_MEMORY(memory, n, v);
 		set_lcd(n, v);
 		g_hal->log(LOG_MEMORY, "Display Memory 2 - ");
 	} else if (n >= MEM_IO_ADDR && n < (MEM_IO_ADDR + MEM_IO_SIZE)) {
 		/* I/O Memory */
+		SET_IO_MEMORY(memory, n, v);
 		set_io(n, v);
 		g_hal->log(LOG_MEMORY, "I/O              - ");
 	} else {
 		g_hal->log(LOG_ERROR,   "Write 0x%X to invalid memory address 0x%03X - PC = 0x%04X\n", v, n, pc);
 		return;
 	}
-
-	/* Cache any data written to a valid address */
-	memory[n] = v;
 
 	g_hal->log(LOG_MEMORY, "Write 0x%X - Address 0x%03X - PC = 0x%04X\n", v, n, pc);
 }
@@ -619,7 +621,7 @@ void cpu_refresh_hw(void)
 
 	for (int i = 0; refresh_locs[i].size != 0; i++) {
 		for (u12_t n = refresh_locs[i].addr; n < (refresh_locs[i].addr + refresh_locs[i].size); n++) {
-			set_memory(n, memory[n]);
+			set_memory(n, GET_MEMORY(memory, n));
 		}
 	}
 }
@@ -1670,12 +1672,12 @@ void cpu_reset(void)
 	flags = 0;
 
 	/* Init RAM to zeros */
-	for (i = 0; i < MEMORY_SIZE; i++) {
+	for (i = 0; i < MEM_BUFFER_SIZE; i++) {
 		memory[i] = 0;
 	}
 
-	memory[REG_K40_K43_BZ_OUTPUT_PORT] = 0xF; // Output port (R40-R43)
-	memory[REG_LCD_CTRL] = 0x8; // LCD control
+	SET_IO_MEMORY(memory, REG_K40_K43_BZ_OUTPUT_PORT, 0xF); // Output port (R40-R43)
+	SET_IO_MEMORY(memory, REG_LCD_CTRL, 0x8); // LCD control
 	/* TODO: Input relation register */
 
 	cpu_sync_ref_timestamp();
