@@ -72,7 +72,7 @@ typedef struct {
 	void (*set_lcd_icon)(u8_t icon, bool_t val);
 
 	/* Sound related functions
-	 * NOTE: set_frequency() changes the output frequency of the sound, while
+	 * NOTE: set_frequency() changes the output frequency of the sound in dHz, while
 	 * play_frequency() decides whether the sound should be heard or not.
 	 */
 	void (*set_frequency)(u32_t freq);
