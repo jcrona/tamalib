@@ -33,12 +33,15 @@
 #define MEM_IO_ADDR				0xF00
 #define MEM_IO_SIZE				0x080
 
-/* Define this if you want to reduce the footprint of the memory buffer from 4096 u4_t (most likely bytes)
- * to 464 u8_t (bytes for sure), while increasing slightly the number of operations needed to read/write from/to it.
- */
-#define LOW_FOOTPRINT
+#ifndef LOW_FOOTPRINT
+  /* Reduce the footprint of the memory buffer from 4096 u4_t (most likely bytes)
+   * to 464 u8_t (bytes for sure), while increasing slightly the number of
+   * operations needed to read/write from/to it.
+   */
+  #define LOW_FOOTPRINT 1
+#endif
 
-#ifdef LOW_FOOTPRINT
+#if LOW_FOOTPRINT
 /* Invalid memory areas are not buffered to reduce the footprint of the library in memory */
 #define MEM_BUFFER_SIZE				(MEM_RAM_SIZE + MEM_DISPLAY1_SIZE + MEM_DISPLAY2_SIZE + MEM_IO_SIZE)/2
 
