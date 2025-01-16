@@ -1558,7 +1558,7 @@ static const op_t ops[] = {
 	{"ADC  R(#0x%02X) #0x%02X   ", 0xC40, MASK_6B , 4, 0x030, 7 , &op_adc_r_i_cb}, // ADC_R_I
 	{"ADC  R(#0x%02X) Q(#0x%02X)", 0xA90, MASK_8B , 2, 0x00C, 7 , &op_adc_r_q_cb}, // ADC_R_Q
 	{"SUB  R(#0x%02X) Q(#0x%02X)", 0xAA0, MASK_8B , 2, 0x00C, 7 , &op_sub_cb}, // SUB
-	{"SBC  R(#0x%02X) #0x%02X   ", 0xB40, MASK_6B , 4, 0x030, 7 , &op_sbc_r_i_cb}, // SBC_R_I
+	{"SBC  R(#0x%02X) #0x%02X   ", 0xD40, MASK_6B , 4, 0x030, 7 , &op_sbc_r_i_cb}, // SBC_R_I
 	{"SBC  R(#0x%02X) Q(#0x%02X)", 0xAB0, MASK_8B , 2, 0x00C, 7 , &op_sbc_r_q_cb}, // SBC_R_Q
 	{"AND  R(#0x%02X) #0x%02X   ", 0xC80, MASK_6B , 4, 0x030, 7 , &op_and_r_i_cb}, // AND_R_I
 	{"AND  R(#0x%02X) Q(#0x%02X)", 0xAC0, MASK_8B , 2, 0x00C, 7 , &op_and_r_q_cb}, // AND_R_Q
