@@ -23,6 +23,9 @@
 
 #define TICK_FREQUENCY				32768 // Hz
 
+#define OSC1_FREQUENCY				TICK_FREQUENCY // Hz
+#define OSC3_FREQUENCY				1000000 // Hz
+
 #define TIMER_1HZ_PERIOD			32768 // in ticks
 #define TIMER_256HZ_PERIOD			128 // in ticks
 
@@ -191,6 +194,9 @@ static u8_t speed_ratio = 1;
 static timestamp_t ref_ts;
 
 static bool_t cpu_halted = 0;
+static u32_t cpu_frequency = OSC1_FREQUENCY; // in hz
+static u32_t scaled_cycle_accumulator = 0;
+
 
 static state_t cpu_state = {
 	.pc = &pc,
@@ -506,7 +512,19 @@ static void set_io(u12_t n, u4_t v)
 
 		case REG_CPU_OSC3_CTRL:
 			/* CPU/OSC3 clocks switch, CPU voltage switch */
-			/* Assume 32,768 OSC1 selected, OSC3 off, battery >= 3,1V (0x1) */
+			/* Do not care about OSC3 state nor operating voltage */
+			if ((v & 0x8) && cpu_frequency != OSC3_FREQUENCY) {
+				/* OSC3 */
+				cpu_frequency = OSC3_FREQUENCY;
+				scaled_cycle_accumulator = 0;
+				g_hal->log(LOG_INFO, "Switch to OSC3\n");
+			}
+			if (!(v & 0x8) && cpu_frequency != OSC1_FREQUENCY) {
+				/* OSC1 */
+				cpu_frequency = OSC1_FREQUENCY;
+				scaled_cycle_accumulator = 0;
+				g_hal->log(LOG_INFO, "Switch to OSC1\n");
+			}
 			break;
 
 		case REG_LCD_CTRL:
@@ -1618,15 +1636,25 @@ static const op_t ops[] = {
 
 static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
 	timestamp_t deadline;
+	u32_t ticks_pending;
 
-	tick_counter += cycles;
+	/* The tick counter always works at TICK_FREQUENCY,
+	 * while the CPU runs at cpu_frequency
+	 */
+	scaled_cycle_accumulator += cycles * TICK_FREQUENCY;
+	ticks_pending = scaled_cycle_accumulator/cpu_frequency;
+
+	if (ticks_pending > 0) {
+		tick_counter += ticks_pending;
+		scaled_cycle_accumulator -= ticks_pending * cpu_frequency;
+	}
 
 	if (speed_ratio == 0) {
 		/* Emulation will be as fast as possible */
 		return g_hal->get_timestamp();
 	}
 
-	deadline = since + (cycles * ts_freq)/(TICK_FREQUENCY * speed_ratio);
+	deadline = since + (cycles * ts_freq)/(cpu_frequency * speed_ratio);
 	g_hal->sleep_until(deadline);
 
 	return deadline;
@@ -1719,6 +1747,8 @@ void cpu_reset(void)
 	SET_IO_MEMORY(memory, REG_R40_R43_BZ_OUTPUT_PORT, 0xF); // Output port (R40-R43)
 	SET_IO_MEMORY(memory, REG_LCD_CTRL, 0x8); // LCD control
 	/* TODO: Input relation register */
+
+	cpu_frequency = OSC1_FREQUENCY;
 
 	cpu_sync_ref_timestamp();
 }
