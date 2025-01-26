@@ -762,14 +762,14 @@ static void op_calz_cb(u8_t arg0, u8_t arg1)
 
 static void op_ret_cb(u8_t arg0, u8_t arg1)
 {
-	next_pc = M(sp) | (M(sp + 1) << 4) | (M(sp + 2) << 8) | (PCB << 12);
+	next_pc = M(sp) | (M((sp + 1) & 0xFF) << 4) | (M((sp + 2) & 0xFF) << 8) | (PCB << 12);
 	sp = (sp + 3) & 0xFF;
 	call_depth--;
 }
 
 static void op_rets_cb(u8_t arg0, u8_t arg1)
 {
-	next_pc = M(sp) | (M(sp + 1) << 4) | (M(sp + 2) << 8) | (PCB << 12);
+	next_pc = M(sp) | (M((sp + 1) & 0xFF) << 4) | (M((sp + 2) & 0xFF) << 8) | (PCB << 12);
 	sp = (sp + 3) & 0xFF;
 	next_pc = (next_pc + 1) & 0x1FFF;
 	call_depth--;
@@ -777,10 +777,10 @@ static void op_rets_cb(u8_t arg0, u8_t arg1)
 
 static void op_retd_cb(u8_t arg0, u8_t arg1)
 {
-	next_pc = M(sp) | (M(sp + 1) << 4) | (M(sp + 2) << 8) | (PCB << 12);
+	next_pc = M(sp) | (M((sp + 1) & 0xFF) << 4) | (M((sp + 2) & 0xFF) << 8) | (PCB << 12);
 	sp = (sp + 3) & 0xFF;
 	SET_M(x, arg0 & 0xF);
-	SET_M(x + 1, (arg0 >> 4) & 0xF);
+	SET_M(((x + 1) & 0xFF) | (XP << 8), (arg0 >> 4) & 0xF);
 	x = ((x + 2) & 0xFF) | (XP << 8);
 	call_depth--;
 }
@@ -999,7 +999,7 @@ static void op_ldpy_r_cb(u8_t arg0, u8_t arg1)
 static void op_lbpx_cb(u8_t arg0, u8_t arg1)
 {
 	SET_M(x, arg0 & 0xF);
-	SET_M(x + 1, (arg0 >> 4) & 0xF);
+	SET_M(((x + 1) & 0xFF) | (XP << 8), (arg0 >> 4) & 0xF);
 	x = ((x + 2) & 0xFF) | (XP << 8);
 }
 
