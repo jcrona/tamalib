@@ -771,7 +771,7 @@ static void op_rets_cb(u8_t arg0, u8_t arg1)
 {
 	next_pc = M(sp) | (M(sp + 1) << 4) | (M(sp + 2) << 8) | (PCB << 12);
 	sp = (sp + 3) & 0xFF;
-	next_pc = (pc + 1) & 0x1FFF;
+	next_pc = (next_pc + 1) & 0x1FFF;
 	call_depth--;
 }
 
