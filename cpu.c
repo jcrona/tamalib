@@ -732,9 +732,9 @@ static void op_jpba_cb(u8_t arg0, u8_t arg1)
 static void op_call_cb(u8_t arg0, u8_t arg1)
 {
 	pc = (pc + 1) & 0x1FFF; // This does not actually change the PC register
-	SET_M(sp - 1, PCP);
-	SET_M(sp - 2, PCSH);
-	SET_M(sp - 3, PCSL);
+	SET_M((sp - 1) & 0xFF, PCP);
+	SET_M((sp - 2) & 0xFF, PCSH);
+	SET_M((sp - 3) & 0xFF, PCSL);
 	sp = (sp - 3) & 0xFF;
 	next_pc = TO_PC(PCB, NPP, arg0);
 	call_depth++;
@@ -743,9 +743,9 @@ static void op_call_cb(u8_t arg0, u8_t arg1)
 static void op_calz_cb(u8_t arg0, u8_t arg1)
 {
 	pc = (pc + 1) & 0x1FFF; // This does not actually change the PC register
-	SET_M(sp - 1, PCP);
-	SET_M(sp - 2, PCSH);
-	SET_M(sp - 3, PCSL);
+	SET_M((sp - 1) & 0xFF, PCP);
+	SET_M((sp - 2) & 0xFF, PCSH);
+	SET_M((sp - 3) & 0xFF, PCSL);
 	sp = (sp - 3) & 0xFF;
 	next_pc = TO_PC(PCB, 0, arg0);
 	call_depth++;
@@ -1626,9 +1626,9 @@ static void process_interrupts(void)
 	for (i = 0; i < INT_SLOT_NUM; i++) {
 		if (interrupts[i].triggered) {
 			//printf("IT %u !\n", i);
-			SET_M(sp - 1, PCP);
-			SET_M(sp - 2, PCSH);
-			SET_M(sp - 3, PCSL);
+			SET_M((sp - 1) & 0xFF, PCP);
+			SET_M((sp - 2) & 0xFF, PCSH);
+			SET_M((sp - 3) & 0xFF, PCSL);
 			sp = (sp - 3) & 0xFF;
 			CLEAR_I();
 			np = TO_NP(NBP, 1);
