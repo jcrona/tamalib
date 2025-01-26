@@ -181,6 +181,8 @@ typedef struct {
 
 	interrupt_t *interrupts;
 
+	bool_t *cpu_halted;
+
 	MEM_BUFFER_TYPE *memory;
 } state_t;
 

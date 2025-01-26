@@ -190,6 +190,8 @@ static u32_t ts_freq;
 static u8_t speed_ratio = 1;
 static timestamp_t ref_ts;
 
+static bool_t cpu_halted = 0;
+
 static state_t cpu_state = {
 	.pc = &pc,
 	.x = &x,
@@ -210,6 +212,8 @@ static state_t cpu_state = {
 	.call_depth = &call_depth,
 
 	.interrupts = interrupts,
+
+	.cpu_halted = &cpu_halted,
 
 	.memory = memory,
 };
@@ -795,7 +799,7 @@ static void op_nop7_cb(u8_t arg0, u8_t arg1)
 
 static void op_halt_cb(u8_t arg0, u8_t arg1)
 {
-	g_hal->halt();
+	cpu_halted = 1;
 }
 
 static void op_inc_x_cb(u8_t arg0, u8_t arg1)
@@ -1644,6 +1648,7 @@ static void process_interrupts(void)
 			np = TO_NP(NBP, 1);
 			pc = TO_PC(PCB, 1, interrupts[i].vector);
 			call_depth++;
+			cpu_halted = 0;
 
 			ref_ts = wait_for_cycles(ref_ts, 12);
 			interrupts[i].triggered = 0;
@@ -1740,49 +1745,58 @@ int cpu_step(void)
 	breakpoint_t *bp = g_breakpoints;
 	static u8_t previous_cycles = 0;
 
-	op = g_program[pc];
+	if (!cpu_halted) {
+		op = g_program[pc];
 
-	/* Lookup the OP code */
-	for (i = 0; ops[i].log != NULL; i++) {
-		if ((op & ops[i].mask) == ops[i].code) {
-			break;
+		/* Lookup the OP code */
+		for (i = 0; ops[i].log != NULL; i++) {
+			if ((op & ops[i].mask) == ops[i].code) {
+				break;
+			}
 		}
-	}
 
-	if (ops[i].log == NULL) {
-		g_hal->log(LOG_ERROR, "Unknown op-code 0x%X (pc = 0x%04X)\n", op, pc);
-		return 1;
-	}
-
-	next_pc = (pc + 1) & 0x1FFF;
-
-	/* Display the operation along with the current state of the processor */
-	print_state(i, op, pc);
-
-	/* Match the speed of the real processor
-	 * NOTE: For better accuracy, the final wait should happen here, however
-	 * the downside is that all interrupts will likely be delayed by one OP
-	 */
-	ref_ts = wait_for_cycles(ref_ts, previous_cycles);
-
-	/* Process the OP code */
-	if (ops[i].cb != NULL) {
-		if (ops[i].mask_arg0 != 0) {
-			/* Two arguments */
-			ops[i].cb((op & ops[i].mask_arg0) >> ops[i].shift_arg0, op & ~(ops[i].mask | ops[i].mask_arg0));
-		} else {
-			/* One arguments */
-			ops[i].cb((op & ~ops[i].mask) >> ops[i].shift_arg0, 0);
+		if (ops[i].log == NULL) {
+			g_hal->log(LOG_ERROR, "Unknown op-code 0x%X (pc = 0x%04X)\n", op, pc);
+			return 1;
 		}
-	}
 
-	/* Prepare for the next instruction */
-	pc = next_pc;
-	previous_cycles = ops[i].cycles;
+		next_pc = (pc + 1) & 0x1FFF;
 
-	if (i > 0) {
-		/* OP code is not PSET, reset NP */
-		np = (pc >> 8) & 0x1F;
+		/* Display the operation along with the current state of the processor */
+		print_state(i, op, pc);
+
+		/* Match the speed of the real processor
+		* NOTE: For better accuracy, the final wait should happen here, however
+		* the downside is that all interrupts will likely be delayed by one OP
+		*/
+		ref_ts = wait_for_cycles(ref_ts, previous_cycles);
+
+		/* Process the OP code */
+		if (ops[i].cb != NULL) {
+			if (ops[i].mask_arg0 != 0) {
+				/* Two arguments */
+				ops[i].cb((op & ops[i].mask_arg0) >> ops[i].shift_arg0, op & ~(ops[i].mask | ops[i].mask_arg0));
+			} else {
+				/* One arguments */
+				ops[i].cb((op & ~ops[i].mask) >> ops[i].shift_arg0, 0);
+			}
+		}
+
+		/* Prepare for the next instruction */
+		pc = next_pc;
+		previous_cycles = ops[i].cycles;
+
+		if (i != 0) {
+			/* OP code is not PSET, reset NP */
+			np = (pc >> 8) & 0x1F;
+		}
+	} else {
+		/* Wait at least once for the duration of a HALT and as long as required
+		 * (to increment the tick counter), but make sure there will be no wait once
+		 * the CPU is restarted
+		 */
+		ref_ts = wait_for_cycles(ref_ts, 5);
+		previous_cycles = 0;
 	}
 
 	/* Handle timers using the internal tick counter */
@@ -1812,7 +1826,7 @@ int cpu_step(void)
 	}
 
 	/* Check if we could pause the execution */
-	while (bp != NULL) {
+	while (!cpu_halted && bp != NULL) {
 		if (bp->addr == pc) {
 			return 1;
 		}
