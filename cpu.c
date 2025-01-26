@@ -1791,7 +1791,7 @@ int cpu_step(void)
 	}
 
 	/* Check if there is any pending interrupt */
-	if (I && i > 0) { // Do not process interrupts after a PSET operation
+	if (I && i != 0 && i != 58) { // Do not process interrupts after a PSET or EI operation
 		process_interrupts();
 	}
 
