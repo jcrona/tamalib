@@ -1646,6 +1646,7 @@ static void process_interrupts(void)
 
 			ref_ts = wait_for_cycles(ref_ts, 12);
 			interrupts[i].triggered = 0;
+			return;
 		}
 	}
 }
