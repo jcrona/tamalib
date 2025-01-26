@@ -94,7 +94,7 @@
 #define REG_PROG_TIMER_RELOAD_DATA_H		0xF27
 #define REG_K00_K03_INPUT_PORT			0xF40
 #define REG_K10_K13_INPUT_PORT			0xF42
-#define REG_K40_K43_BZ_OUTPUT_PORT		0xF54
+#define REG_R40_R43_BZ_OUTPUT_PORT		0xF54
 #define REG_CPU_OSC3_CTRL			0xF70
 #define REG_LCD_CTRL				0xF71
 #define REG_LCD_CONTRAST			0xF72
@@ -361,7 +361,7 @@ static u4_t get_io(u12_t n)
 			/* Input port (K10-K13) */
 			return inputs[1].states;
 
-		case REG_K40_K43_BZ_OUTPUT_PORT:
+		case REG_R40_R43_BZ_OUTPUT_PORT:
 			/* Output port (R40-R43) */
 			return GET_IO_MEMORY(memory, n);
 
@@ -466,7 +466,7 @@ static void set_io(u12_t n, u4_t v)
 			/* Write not allowed */
 			break;
 
-		case REG_K40_K43_BZ_OUTPUT_PORT:
+		case REG_R40_R43_BZ_OUTPUT_PORT:
 			/* Output port (R40-R43) */
 			//g_hal->log(LOG_INFO, "Output/Buzzer: 0x%X\n", v);
 			hw_enable_buzzer(!(v & 0x8));
@@ -614,7 +614,7 @@ void cpu_refresh_hw(void)
 		{ MEM_DISPLAY1_ADDR, MEM_DISPLAY1_SIZE }, /* Display Memory 1 */
 		{ MEM_DISPLAY2_ADDR, MEM_DISPLAY2_SIZE }, /* Display Memory 2 */
 		{ REG_BUZZER_CTRL1, 1 }, /* Buzzer frequency */
-		{ REG_K40_K43_BZ_OUTPUT_PORT, 1 }, /* Buzzer enabled */
+		{ REG_R40_R43_BZ_OUTPUT_PORT, 1 }, /* Buzzer enabled */
 
 		{ 0, 0 }, // end of list
 	};
@@ -1676,7 +1676,7 @@ void cpu_reset(void)
 		memory[i] = 0;
 	}
 
-	SET_IO_MEMORY(memory, REG_K40_K43_BZ_OUTPUT_PORT, 0xF); // Output port (R40-R43)
+	SET_IO_MEMORY(memory, REG_R40_R43_BZ_OUTPUT_PORT, 0xF); // Output port (R40-R43)
 	SET_IO_MEMORY(memory, REG_LCD_CTRL, 0x8); // LCD control
 	/* TODO: Input relation register */
 
