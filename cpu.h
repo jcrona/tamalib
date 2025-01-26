@@ -22,16 +22,34 @@
 
 #include "hal.h"
 
-#define MEMORY_SIZE				4096 // 4096 x 4 bits (640 x 4 bits of RAM)
+#define MEMORY_SIZE				4096 // 4096 x 4 bits
 
+#define E0C6S46_SUPPORT
+#define E0C6S48_SUPPORT
+
+#if defined(E0C6S48_SUPPORT)
+/* E0C6S48 (compatible with E0C6S46) */
 #define MEM_RAM_ADDR				0x000
-#define MEM_RAM_SIZE				0x280
+#define MEM_RAM_SIZE				0x300 // 768 x 4 bits of RAM
 #define MEM_DISPLAY1_ADDR			0xE00
-#define MEM_DISPLAY1_SIZE			0x050
+#define MEM_DISPLAY1_SIZE			0x066 // 102 x 4 bits of RAM
 #define MEM_DISPLAY2_ADDR			0xE80
-#define MEM_DISPLAY2_SIZE			0x050
+#define MEM_DISPLAY2_SIZE			0x066 // 102 x 4 bits of RAM
 #define MEM_IO_ADDR				0xF00
 #define MEM_IO_SIZE				0x080
+#elif defined(E0C6S46_SUPPORT)
+/* E0C6S46 only */
+#define MEM_RAM_ADDR				0x000
+#define MEM_RAM_SIZE				0x280 // 640 x 4 bits of RAM
+#define MEM_DISPLAY1_ADDR			0xE00
+#define MEM_DISPLAY1_SIZE			0x050 // 80 x 4 bits of RAM
+#define MEM_DISPLAY2_ADDR			0xE80
+#define MEM_DISPLAY2_SIZE			0x050 // 80 x 4 bits of RAM
+#define MEM_IO_ADDR				0xF00
+#define MEM_IO_SIZE				0x080
+#else
+#error Support for at least one CPU needs to be defined !
+#endif
 
 /* Define this if you want to reduce the footprint of the memory buffer from 4096 u4_t (most likely bytes)
  * to 464 u8_t (bytes for sure), while increasing slightly the number of operations needed to read/write from/to it.
