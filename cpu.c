@@ -1518,18 +1518,18 @@ static const op_t ops[] = {
 	{"INC  Y #0x%02X          "  , 0xEF0, MASK_12B, 0, 0    , 5 , &op_inc_y_cb}, // INC_Y
 	{"LD   X #0x%02X          "  , 0xB00, MASK_4B , 0, 0    , 5 , &op_ld_x_cb}, // LD_X
 	{"LD   Y #0x%02X          "  , 0x800, MASK_4B , 0, 0    , 5 , &op_ld_y_cb}, // LD_Y
-	{"LD   XP R(#0x%02X)      "  , 0xE80, MASK_10B, 0, 0    , 5 , &op_ld_xp_r_cb}, // LD_XP_R
-	{"LD   XH R(#0x%02X)      "  , 0xE84, MASK_10B, 0, 0    , 5 , &op_ld_xh_r_cb}, // LD_XH_R
-	{"LD   XL R(#0x%02X)      "  , 0xE88, MASK_10B, 0, 0    , 5 , &op_ld_xl_r_cb}, // LD_XL_R
-	{"LD   YP R(#0x%02X)      "  , 0xE90, MASK_10B, 0, 0    , 5 , &op_ld_yp_r_cb}, // LD_YP_R
-	{"LD   YH R(#0x%02X)      "  , 0xE94, MASK_10B, 0, 0    , 5 , &op_ld_yh_r_cb}, // LD_YH_R
-	{"LD   YL R(#0x%02X)      "  , 0xE98, MASK_10B, 0, 0    , 5 , &op_ld_yl_r_cb}, // LD_YL_R
-	{"LD   R(#0x%02X) XP      "  , 0xEA0, MASK_10B, 0, 0    , 5 , &op_ld_r_xp_cb}, // LD_R_XP
-	{"LD   R(#0x%02X) XH      "  , 0xEA4, MASK_10B, 0, 0    , 5 , &op_ld_r_xh_cb}, // LD_R_XH
-	{"LD   R(#0x%02X) XL      "  , 0xEA8, MASK_10B, 0, 0    , 5 , &op_ld_r_xl_cb}, // LD_R_XL
-	{"LD   R(#0x%02X) YP      "  , 0xEB0, MASK_10B, 0, 0    , 5 , &op_ld_r_yp_cb}, // LD_R_YP
-	{"LD   R(#0x%02X) YH      "  , 0xEB4, MASK_10B, 0, 0    , 5 , &op_ld_r_yh_cb}, // LD_R_YH
-	{"LD   R(#0x%02X) YL      "  , 0xEB8, MASK_10B, 0, 0    , 5 , &op_ld_r_yl_cb}, // LD_R_YL
+	{"LD   XP R(%X)          "  , 0xE80, MASK_10B, 0, 0    , 5 , &op_ld_xp_r_cb}, // LD_XP_R
+	{"LD   XH R(%X)          "  , 0xE84, MASK_10B, 0, 0    , 5 , &op_ld_xh_r_cb}, // LD_XH_R
+	{"LD   XL R(%X)          "  , 0xE88, MASK_10B, 0, 0    , 5 , &op_ld_xl_r_cb}, // LD_XL_R
+	{"LD   YP R(%X)          "  , 0xE90, MASK_10B, 0, 0    , 5 , &op_ld_yp_r_cb}, // LD_YP_R
+	{"LD   YH R(%X)          "  , 0xE94, MASK_10B, 0, 0    , 5 , &op_ld_yh_r_cb}, // LD_YH_R
+	{"LD   YL R(%X)          "  , 0xE98, MASK_10B, 0, 0    , 5 , &op_ld_yl_r_cb}, // LD_YL_R
+	{"LD   R(%X) XP          "  , 0xEA0, MASK_10B, 0, 0    , 5 , &op_ld_r_xp_cb}, // LD_R_XP
+	{"LD   R(%X) XH          "  , 0xEA4, MASK_10B, 0, 0    , 5 , &op_ld_r_xh_cb}, // LD_R_XH
+	{"LD   R(%X) XL          "  , 0xEA8, MASK_10B, 0, 0    , 5 , &op_ld_r_xl_cb}, // LD_R_XL
+	{"LD   R(%X) YP          "  , 0xEB0, MASK_10B, 0, 0    , 5 , &op_ld_r_yp_cb}, // LD_R_YP
+	{"LD   R(%X) YH          "  , 0xEB4, MASK_10B, 0, 0    , 5 , &op_ld_r_yh_cb}, // LD_R_YH
+	{"LD   R(%X) YL          "  , 0xEB8, MASK_10B, 0, 0    , 5 , &op_ld_r_yl_cb}, // LD_R_YL
 	{"ADC  XH #0x%02X         "  , 0xA00, MASK_8B , 0, 0    , 7 , &op_adc_xh_cb}, // ADC_XH
 	{"ADC  XL #0x%02X         "  , 0xA10, MASK_8B , 0, 0    , 7 , &op_adc_xl_cb}, // ADC_XL
 	{"ADC  YH #0x%02X         "  , 0xA20, MASK_8B , 0, 0    , 7 , &op_adc_yh_cb}, // ADC_YH
@@ -1538,16 +1538,16 @@ static const op_t ops[] = {
 	{"CP   XL #0x%02X         "  , 0xA50, MASK_8B , 0, 0    , 7 , &op_cp_xl_cb}, // CP_XL
 	{"CP   YH #0x%02X         "  , 0xA60, MASK_8B , 0, 0    , 7 , &op_cp_yh_cb}, // CP_YH
 	{"CP   YL #0x%02X         "  , 0xA70, MASK_8B , 0, 0    , 7 , &op_cp_yl_cb}, // CP_YL
-	{"LD   R(#0x%02X) #0x%02X   ", 0xE00, MASK_6B , 4, 0x030, 5 , &op_ld_r_i_cb}, // LD_R_I
-	{"LD   R(#0x%02X) Q(#0x%02X)", 0xEC0, MASK_8B , 2, 0x00C, 5 , &op_ld_r_q_cb}, // LD_R_Q
+	{"LD   R(%X) #0x%02X       ", 0xE00, MASK_6B , 4, 0x030, 5 , &op_ld_r_i_cb}, // LD_R_I
+	{"LD   R(%X) Q(%X)        ", 0xEC0, MASK_8B , 2, 0x00C, 5 , &op_ld_r_q_cb}, // LD_R_Q
 	{"LD   A M(#0x%02X)       "  , 0xFA0, MASK_8B , 0, 0    , 5 , &op_ld_a_mn_cb}, // LD_A_MN
 	{"LD   B M(#0x%02X)       "  , 0xFB0, MASK_8B , 0, 0    , 5 , &op_ld_b_mn_cb}, // LD_B_MN
 	{"LD   M(#0x%02X) A       "  , 0xF80, MASK_8B , 0, 0    , 5 , &op_ld_mn_a_cb}, // LD_MN_A
 	{"LD   M(#0x%02X) B       "  , 0xF90, MASK_8B , 0, 0    , 5 , &op_ld_mn_b_cb}, // LD_MN_B
 	{"LDPX MX #0x%02X         "  , 0xE60, MASK_8B , 0, 0    , 5 , &op_ldpx_mx_cb}, // LDPX_MX
-	{"LDPX R(#0x%02X) Q(#0x%02X)", 0xEE0, MASK_8B , 2, 0x00C, 5 , &op_ldpx_r_cb}, // LDPX_R
+	{"LDPX R(%X) Q(%X)        ", 0xEE0, MASK_8B , 2, 0x00C, 5 , &op_ldpx_r_cb}, // LDPX_R
 	{"LDPY MY #0x%02X         "  , 0xE70, MASK_8B , 0, 0    , 5 , &op_ldpy_my_cb}, // LDPY_MY
-	{"LDPY R(#0x%02X) Q(#0x%02X)", 0xEF0, MASK_8B , 2, 0x00C, 5 , &op_ldpy_r_cb}, // LDPY_R
+	{"LDPY R(%X) Q(%X)        ", 0xEF0, MASK_8B , 2, 0x00C, 5 , &op_ldpy_r_cb}, // LDPY_R
 	{"LBPX #0x%02X            "  , 0x900, MASK_4B , 0, 0    , 5 , &op_lbpx_cb}, // LBPX
 	{"SET  #0x%02X            "  , 0xF40, MASK_8B , 0, 0    , 7 , &op_set_cb}, // SET
 	{"RST  #0x%02X            "  , 0xF50, MASK_8B , 0, 0    , 7 , &op_rst_cb}, // RST
@@ -1561,7 +1561,7 @@ static const op_t ops[] = {
 	{"DI                    "    , 0xF57, MASK_12B, 0, 0    , 7 , &op_di_cb}, // DI
 	{"INC  SP               "    , 0xFDB, MASK_12B, 0, 0    , 5 , &op_inc_sp_cb}, // INC_SP
 	{"DEC  SP               "    , 0xFCB, MASK_12B, 0, 0    , 5 , &op_dec_sp_cb}, // DEC_SP
-	{"PUSH R(#0x%02X)         "  , 0xFC0, MASK_10B, 0, 0    , 5 , &op_push_r_cb}, // PUSH_R
+	{"PUSH R(%X)             "  , 0xFC0, MASK_10B, 0, 0    , 5 , &op_push_r_cb}, // PUSH_R
 	{"PUSH XP               "    , 0xFC4, MASK_12B, 0, 0    , 5 , &op_push_xp_cb}, // PUSH_XP
 	{"PUSH XH               "    , 0xFC5, MASK_12B, 0, 0    , 5 , &op_push_xh_cb}, // PUSH_XH
 	{"PUSH XL               "    , 0xFC6, MASK_12B, 0, 0    , 5 , &op_push_xl_cb}, // PUSH_XL
@@ -1569,7 +1569,7 @@ static const op_t ops[] = {
 	{"PUSH YH               "    , 0xFC8, MASK_12B, 0, 0    , 5 , &op_push_yh_cb}, // PUSH_YH
 	{"PUSH YL               "    , 0xFC9, MASK_12B, 0, 0    , 5 , &op_push_yl_cb}, // PUSH_YL
 	{"PUSH F                "    , 0xFCA, MASK_12B, 0, 0    , 5 , &op_push_f_cb}, // PUSH_F
-	{"POP  R(#0x%02X)         "  , 0xFD0, MASK_10B, 0, 0    , 5 , &op_pop_r_cb}, // POP_R
+	{"POP  R(%X)             "  , 0xFD0, MASK_10B, 0, 0    , 5 , &op_pop_r_cb}, // POP_R
 	{"POP  XP               "    , 0xFD4, MASK_12B, 0, 0    , 5 , &op_pop_xp_cb}, // POP_XP
 	{"POP  XH               "    , 0xFD5, MASK_12B, 0, 0    , 5 , &op_pop_xh_cb}, // POP_XH
 	{"POP  XL               "    , 0xFD6, MASK_12B, 0, 0    , 5 , &op_pop_xl_cb}, // POP_XL
@@ -1577,39 +1577,40 @@ static const op_t ops[] = {
 	{"POP  YH               "    , 0xFD8, MASK_12B, 0, 0    , 5 , &op_pop_yh_cb}, // POP_YH
 	{"POP  YL               "    , 0xFD9, MASK_12B, 0, 0    , 5 , &op_pop_yl_cb}, // POP_YL
 	{"POP  F                "    , 0xFDA, MASK_12B, 0, 0    , 5 , &op_pop_f_cb}, // POP_F
-	{"LD   SPH R(#0x%02X)     "  , 0xFE0, MASK_10B, 0, 0    , 5 , &op_ld_sph_r_cb}, // LD_SPH_R
-	{"LD   SPL R(#0x%02X)     "  , 0xFF0, MASK_10B, 0, 0    , 5 , &op_ld_spl_r_cb}, // LD_SPL_R
-	{"LD   R(#0x%02X) SPH     "  , 0xFE4, MASK_10B, 0, 0    , 5 , &op_ld_r_sph_cb}, // LD_R_SPH
-	{"LD   R(#0x%02X) SPL     "  , 0xFF4, MASK_10B, 0, 0    , 5 , &op_ld_r_spl_cb}, // LD_R_SPL
-	{"ADD  R(#0x%02X) #0x%02X   ", 0xC00, MASK_6B , 4, 0x030, 7 , &op_add_r_i_cb}, // ADD_R_I
-	{"ADD  R(#0x%02X) Q(#0x%02X)", 0xA80, MASK_8B , 2, 0x00C, 7 , &op_add_r_q_cb}, // ADD_R_Q
-	{"ADC  R(#0x%02X) #0x%02X   ", 0xC40, MASK_6B , 4, 0x030, 7 , &op_adc_r_i_cb}, // ADC_R_I
-	{"ADC  R(#0x%02X) Q(#0x%02X)", 0xA90, MASK_8B , 2, 0x00C, 7 , &op_adc_r_q_cb}, // ADC_R_Q
-	{"SUB  R(#0x%02X) Q(#0x%02X)", 0xAA0, MASK_8B , 2, 0x00C, 7 , &op_sub_cb}, // SUB
-	{"SBC  R(#0x%02X) #0x%02X   ", 0xD40, MASK_6B , 4, 0x030, 7 , &op_sbc_r_i_cb}, // SBC_R_I
-	{"SBC  R(#0x%02X) Q(#0x%02X)", 0xAB0, MASK_8B , 2, 0x00C, 7 , &op_sbc_r_q_cb}, // SBC_R_Q
-	{"AND  R(#0x%02X) #0x%02X   ", 0xC80, MASK_6B , 4, 0x030, 7 , &op_and_r_i_cb}, // AND_R_I
-	{"AND  R(#0x%02X) Q(#0x%02X)", 0xAC0, MASK_8B , 2, 0x00C, 7 , &op_and_r_q_cb}, // AND_R_Q
-	{"OR   R(#0x%02X) #0x%02X   ", 0xCC0, MASK_6B , 4, 0x030, 7 , &op_or_r_i_cb}, // OR_R_I
-	{"OR   R(#0x%02X) Q(#0x%02X)", 0xAD0, MASK_8B , 2, 0x00C, 7 , &op_or_r_q_cb}, // OR_R_Q
-	{"XOR  R(#0x%02X) #0x%02X   ", 0xD00, MASK_6B , 4, 0x030, 7 , &op_xor_r_i_cb}, // XOR_R_I
-	{"XOR  R(#0x%02X) Q(#0x%02X)", 0xAE0, MASK_8B , 2, 0x00C, 7 , &op_xor_r_q_cb}, // XOR_R_Q
-	{"CP   R(#0x%02X) #0x%02X   ", 0xDC0, MASK_6B , 4, 0x030, 7 , &op_cp_r_i_cb}, // CP_R_I
-	{"CP   R(#0x%02X) Q(#0x%02X)", 0xF00, MASK_8B , 2, 0x00C, 7 , &op_cp_r_q_cb}, // CP_R_Q
-	{"FAN  R(#0x%02X) #0x%02X   ", 0xD80, MASK_6B , 4, 0x030, 7 , &op_fan_r_i_cb}, // FAN_R_I
-	{"FAN  R(#0x%02X) Q(#0x%02X)", 0xF10, MASK_8B , 2, 0x00C, 7 , &op_fan_r_q_cb}, // FAN_R_Q
-	{"RLC  R(#0x%02X)         "  , 0xAF0, MASK_8B , 0, 0    , 7 , &op_rlc_cb}, // RLC
-	{"RRC  R(#0x%02X)         "  , 0xE8C, MASK_10B, 0, 0    , 5 , &op_rrc_cb}, // RRC
+	{"LD   SPH R(%X)         "  , 0xFE0, MASK_10B, 0, 0    , 5 , &op_ld_sph_r_cb}, // LD_SPH_R
+	{"LD   SPL R(%X)         "  , 0xFF0, MASK_10B, 0, 0    , 5 , &op_ld_spl_r_cb}, // LD_SPL_R
+	{"LD   R(%X) SPH     "  , 0xFE4, MASK_10B, 0, 0    , 5 , &op_ld_r_sph_cb}, // LD_R_SPH
+	{"LD   R(%X) SPL     "  , 0xFF4, MASK_10B, 0, 0    , 5 , &op_ld_r_spl_cb}, // LD_R_SPL
+	{"ADD  R(%X) #0x%02X       ", 0xC00, MASK_6B , 4, 0x030, 7 , &op_add_r_i_cb}, // ADD_R_I
+	{"ADD  R(%X) Q(%X)        ", 0xA80, MASK_8B , 2, 0x00C, 7 , &op_add_r_q_cb}, // ADD_R_Q
+	{"ADC  R(%X) #0x%02X       ", 0xC40, MASK_6B , 4, 0x030, 7 , &op_adc_r_i_cb}, // ADC_R_I
+	{"ADC  R(%X) Q(%X)        ", 0xA90, MASK_8B , 2, 0x00C, 7 , &op_adc_r_q_cb}, // ADC_R_Q
+	{"SUB  R(%X) Q(%X)        ", 0xAA0, MASK_8B , 2, 0x00C, 7 , &op_sub_cb}, // SUB
+	{"SBC  R(%X) #0x%02X       ", 0xD40, MASK_6B , 4, 0x030, 7 , &op_sbc_r_i_cb}, // SBC_R_I
+	{"SBC  R(%X) Q(%X)        ", 0xAB0, MASK_8B , 2, 0x00C, 7 , &op_sbc_r_q_cb}, // SBC_R_Q
+	{"AND  R(%X) #0x%02X       ", 0xC80, MASK_6B , 4, 0x030, 7 , &op_and_r_i_cb}, // AND_R_I
+	{"AND  R(%X) Q(%X)        ", 0xAC0, MASK_8B , 2, 0x00C, 7 , &op_and_r_q_cb}, // AND_R_Q
+	{"OR   R(%X) #0x%02X       ", 0xCC0, MASK_6B , 4, 0x030, 7 , &op_or_r_i_cb}, // OR_R_I
+	{"OR   R(%X) Q(%X)        ", 0xAD0, MASK_8B , 2, 0x00C, 7 , &op_or_r_q_cb}, // OR_R_Q
+	{"XOR  R(%X) #0x%02X       ", 0xD00, MASK_6B , 4, 0x030, 7 , &op_xor_r_i_cb}, // XOR_R_I
+	{"XOR  R(%X) Q(%X)        ", 0xAE0, MASK_8B , 2, 0x00C, 7 , &op_xor_r_q_cb}, // XOR_R_Q
+	{"CP   R(%X) #0x%02X       ", 0xDC0, MASK_6B , 4, 0x030, 7 , &op_cp_r_i_cb}, // CP_R_I
+	{"CP   R(%X) Q(%X)        ", 0xF00, MASK_8B , 2, 0x00C, 7 , &op_cp_r_q_cb}, // CP_R_Q
+	{"FAN  R(%X) #0x%02X       ", 0xD80, MASK_6B , 4, 0x030, 7 , &op_fan_r_i_cb}, // FAN_R_I
+	{"FAN  R(%X) Q(%X)        ", 0xF10, MASK_8B , 2, 0x00C, 7 , &op_fan_r_q_cb}, // FAN_R_Q
+	{"RLC  R(%X)             "  , 0xAF0, MASK_8B , 0, 0    , 7 , &op_rlc_cb}, // RLC
+	{"RRC  R(%X)             "  , 0xE8C, MASK_10B, 0, 0    , 5 , &op_rrc_cb}, // RRC
 	{"INC  M(#0x%02X)         "  , 0xF60, MASK_8B , 0, 0    , 7 , &op_inc_mn_cb}, // INC_MN
 	{"DEC  M(#0x%02X)         "  , 0xF70, MASK_8B , 0, 0    , 7 , &op_dec_mn_cb}, // DEC_MN
-	{"ACPX R(#0x%02X)         "  , 0xF28, MASK_10B, 0, 0    , 7 , &op_acpx_cb}, // ACPX
-	{"ACPY R(#0x%02X)         "  , 0xF2C, MASK_10B, 0, 0    , 7 , &op_acpy_cb}, // ACPY
-	{"SCPX R(#0x%02X)         "  , 0xF38, MASK_10B, 0, 0    , 7 , &op_scpx_cb}, // SCPX
-	{"SCPY R(#0x%02X)         "  , 0xF3C, MASK_10B, 0, 0    , 7 , &op_scpy_cb}, // SCPY
-	{"NOT  R(#0x%02X)         "  , 0xD0F, 0xFCF   , 4, 0    , 7 , &op_not_cb}, // NOT
+	{"ACPX R(%X)             "  , 0xF28, MASK_10B, 0, 0    , 7 , &op_acpx_cb}, // ACPX
+	{"ACPY R(%X)             "  , 0xF2C, MASK_10B, 0, 0    , 7 , &op_acpy_cb}, // ACPY
+	{"SCPX R(%X)             "  , 0xF38, MASK_10B, 0, 0    , 7 , &op_scpx_cb}, // SCPX
+	{"SCPY R(%X)             "  , 0xF3C, MASK_10B, 0, 0    , 7 , &op_scpy_cb}, // SCPY
+	{"NOT  R(%X)             "  , 0xD0F, 0xFCF   , 4, 0    , 7 , &op_not_cb}, // NOT
 
 	{NULL, 0, 0, 0, 0, 0, NULL},
 };
+
 
 static timestamp_t wait_for_cycles(timestamp_t since, u8_t cycles) {
 	timestamp_t deadline;
