@@ -1662,8 +1662,13 @@ static void print_state(u8_t op_num, u12_t op, u13_t addr)
 
 	g_hal->log(LOG_CPU, "0x%04X: ", addr);
 
-	for (i = 0; i < call_depth; i++) {
-		g_hal->log(LOG_CPU, "  ");
+	if (call_depth < 256) {
+		for (i = 0; i < call_depth; i++) {
+			g_hal->log(LOG_CPU, "  ");
+		}
+	} else {
+		/* Something went wrong, call_depth (unsigned) is actually probably < 0 */
+		g_hal->log(LOG_CPU, "<<< ");
 	}
 
 	if (ops[op_num].mask_arg0 != 0) {
