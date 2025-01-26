@@ -166,6 +166,15 @@ static interrupt_t interrupts[INT_SLOT_NUM] = {
 	{0x0, 0x0, 0, 0x02}, // Clock timer
 };
 
+static char *interrupt_names[] = {
+	[INT_PROG_TIMER_SLOT] =		"INT_PROG_TIMER_SLOT",
+	[INT_SERIAL_SLOT] =		"INT_SERIAL_SLOT",
+	[INT_K10_K13_SLOT] =		"INT_K10_K13_SLOT",
+	[INT_K00_K03_SLOT] =		"INT_K00_K03_SLOT",
+	[INT_STOPWATCH_SLOT] =		"INT_STOPWATCH_SLOT",
+	[INT_CLOCK_TIMER_SLOT] =	"INT_CLOCK_TIMER_SLOT",
+};
+
 static breakpoint_t *g_breakpoints = NULL;
 
 static u32_t call_depth = 0;
@@ -1625,7 +1634,7 @@ static void process_interrupts(void)
 	/* Process interrupts in priority order */
 	for (i = 0; i < INT_SLOT_NUM; i++) {
 		if (interrupts[i].triggered) {
-			//printf("IT %u !\n", i);
+			g_hal->log(LOG_INT, "Interrupt %s (%u) triggered\n", interrupt_names[i], i);
 			SET_M((sp - 1) & 0xFF, PCP);
 			SET_M((sp - 2) & 0xFF, PCSH);
 			SET_M((sp - 3) & 0xFF, PCSL);
