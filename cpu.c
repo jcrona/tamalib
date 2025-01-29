@@ -517,13 +517,13 @@ static void set_io(u12_t n, u4_t v)
 				/* OSC3 */
 				cpu_frequency = OSC3_FREQUENCY;
 				scaled_cycle_accumulator = 0;
-				g_hal->log(LOG_INFO, "Switch to OSC3\n");
+				//g_hal->log(LOG_INFO, "Switch to OSC3\n");
 			}
 			if (!(v & 0x8) && cpu_frequency != OSC1_FREQUENCY) {
 				/* OSC1 */
 				cpu_frequency = OSC1_FREQUENCY;
 				scaled_cycle_accumulator = 0;
-				g_hal->log(LOG_INFO, "Switch to OSC1\n");
+				//g_hal->log(LOG_INFO, "Switch to OSC1\n");
 			}
 			break;
 
