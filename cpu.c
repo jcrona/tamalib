@@ -1701,7 +1701,7 @@ static void print_state(u8_t op_num, u12_t op, u13_t addr)
 
 	g_hal->log(LOG_CPU, "0x%04X: ", addr);
 
-	if (call_depth < 256) {
+	if (call_depth < 100) {
 		for (i = 0; i < call_depth; i++) {
 			g_hal->log(LOG_CPU, "  ");
 		}
