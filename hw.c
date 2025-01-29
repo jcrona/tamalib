@@ -32,10 +32,11 @@ static u8_t seg_pos[MEM_DISPLAY1_SIZE/2] = {0, 1, 2, 3, 4, 5, 6, 7, 32, 8, 9, 10
 
 bool_t hw_init(void)
 {
-	/* Buttons are active LOW */
+	/* Buttons/Tap sensor are active LOW */
 	cpu_set_input_pin(PIN_K00, PIN_STATE_HIGH);
 	cpu_set_input_pin(PIN_K01, PIN_STATE_HIGH);
 	cpu_set_input_pin(PIN_K02, PIN_STATE_HIGH);
+	cpu_set_input_pin(PIN_K03, PIN_STATE_HIGH);
 
 	return 0;
 }
@@ -74,6 +75,10 @@ void hw_set_button(button_t btn, btn_state_t state)
 	pin_state_t pin_state = (state == BTN_STATE_PRESSED) ? PIN_STATE_LOW : PIN_STATE_HIGH;
 
 	switch (btn) {
+		case BTN_TAP:
+			cpu_set_input_pin(PIN_K03, pin_state);
+			break;
+
 		case BTN_LEFT:
 			cpu_set_input_pin(PIN_K02, pin_state);
 			break;

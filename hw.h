@@ -36,6 +36,7 @@ typedef enum {
 	BTN_LEFT = 0,
 	BTN_MIDDLE,
 	BTN_RIGHT,
+	BTN_TAP,
 } button_t;
 
 
