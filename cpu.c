@@ -288,21 +288,29 @@ static void generate_interrupt(int_slot_t slot, u8_t bit)
 
 void cpu_set_input_pin(pin_t pin, pin_state_t state)
 {
-	/* Set the I/O */
-	inputs[pin & 0x4].states = (inputs[pin & 0x4].states & ~(0x1 << (pin & 0x3))) | (state << (pin & 0x3));
+	u4_t old_state = (inputs[pin & 0x4].states >> (pin & 0x3)) & 0x1;
 
-	/* Trigger the interrupt (TODO: handle relation register) */
-	if (state == PIN_STATE_LOW) {
+	/* Trigger the interrupt if the state changed */
+	if (state != old_state) {
 		switch ((pin & 0x4) >> 2) {
 			case 0:
-				generate_interrupt(INT_K00_K03_SLOT, pin & 0x3);
+				/* Active HIGH/LOW depending on the relation register */
+				if (state != ((GET_IO_MEMORY(memory, REG_K00_K03_INPUT_RELATION) >> (pin & 0x3)) & 0x1)) {
+					generate_interrupt(INT_K00_K03_SLOT, pin & 0x3);
+				}
 				break;
 
 			case 1:
-				generate_interrupt(INT_K10_K13_SLOT, pin & 0x3);
+				/* Active LOW */
+				if (state == PIN_STATE_LOW) {
+					generate_interrupt(INT_K10_K13_SLOT, pin & 0x3);
+				}
 				break;
 		}
 	}
+
+	/* Set the I/O */
+	inputs[pin & 0x4].states = (inputs[pin & 0x4].states & ~(0x1 << (pin & 0x3))) | (state << (pin & 0x3));
 }
 
 void cpu_sync_ref_timestamp(void)
@@ -394,6 +402,10 @@ static u4_t get_io(u12_t n)
 		case REG_K00_K03_INPUT_PORT:
 			/* Input port (K00-K03) */
 			return inputs[0].states;
+
+		case REG_K00_K03_INPUT_RELATION:
+			/* Input relation register (K00-K03) */
+			return GET_IO_MEMORY(memory, n);
 
 		case REG_K10_K13_INPUT_PORT:
 			/* Input port (K10-K13) */
@@ -502,6 +514,10 @@ static void set_io(u12_t n, u4_t v)
 		case REG_K00_K03_INPUT_PORT:
 			/* Input port (K00-K03) */
 			/* Write not allowed */
+			break;
+
+		case REG_K00_K03_INPUT_RELATION:
+			/* Input relation register (K00-K03) */
 			break;
 
 		case REG_R40_R43_BZ_OUTPUT_PORT:
@@ -1752,7 +1768,7 @@ void cpu_reset(void)
 
 	SET_IO_MEMORY(memory, REG_R40_R43_BZ_OUTPUT_PORT, 0xF); // Output port (R40-R43)
 	SET_IO_MEMORY(memory, REG_LCD_CTRL, 0x8); // LCD control
-	/* TODO: Input relation register */
+	SET_IO_MEMORY(memory, REG_K00_K03_INPUT_RELATION, 0xF); // Active high
 
 	cpu_frequency = OSC1_FREQUENCY;
 
