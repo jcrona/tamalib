@@ -1784,110 +1784,8 @@ static void print_state(u8_t op_num, u12_t op, u13_t addr)
 	g_hal->log(LOG_CPU, " - PC = 0x%04X, SP = 0x%02X, NP = 0x%02X, X = 0x%03X, Y = 0x%03X, A = 0x%X, B = 0x%X, F = 0x%X\n", pc, sp, np, x, y, a, b, flags);
 }
 
-void cpu_reset(void)
+static void handle_timers(void)
 {
-	u13_t i;
-
-	/* Registers and variables init */
-	pc = TO_PC(0, 1, 0x00); // PC starts at bank 0, page 1, step 0
-	np = TO_NP(0, 1); // NP starts at page 1
-	a = 0; // undef
-	b = 0; // undef
-	x = 0; // undef
-	y = 0; // undef
-	sp = 0; // undef
-	flags = 0;
-
-	/* Init RAM to zeros */
-	for (i = 0; i < MEM_BUFFER_SIZE; i++) {
-		memory[i] = 0;
-	}
-
-	SET_IO_MEMORY(memory, REG_R40_R43_BZ_OUTPUT_PORT, 0xF); // Output port (R40-R43)
-	SET_IO_MEMORY(memory, REG_LCD_CTRL, 0x8); // LCD control
-	SET_IO_MEMORY(memory, REG_K00_K03_INPUT_RELATION, 0xF); // Active high
-
-	cpu_frequency = OSC1_FREQUENCY;
-
-	cpu_sync_ref_timestamp();
-}
-
-bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
-{
-	g_program = program;
-	g_breakpoints = breakpoints;
-	ts_freq = freq;
-
-	cpu_reset();
-
-	return 0;
-}
-
-void cpu_release(void)
-{
-}
-
-int cpu_step(void)
-{
-	u12_t op;
-	u8_t i;
-	breakpoint_t *bp = g_breakpoints;
-	static u8_t previous_cycles = 0;
-
-	if (!cpu_halted) {
-		op = g_program[pc];
-
-		/* Lookup the OP code */
-		for (i = 0; ops[i].log != NULL; i++) {
-			if ((op & ops[i].mask) == ops[i].code) {
-				break;
-			}
-		}
-
-		if (ops[i].log == NULL) {
-			g_hal->log(LOG_ERROR, "Unknown op-code 0x%X (pc = 0x%04X)\n", op, pc);
-			return 1;
-		}
-
-		next_pc = (pc + 1) & 0x1FFF;
-
-		/* Display the operation along with the current state of the processor */
-		print_state(i, op, pc);
-
-		/* Match the speed of the real processor
-		* NOTE: For better accuracy, the final wait should happen here, however
-		* the downside is that all interrupts will likely be delayed by one OP
-		*/
-		ref_ts = wait_for_cycles(ref_ts, previous_cycles);
-
-		/* Process the OP code */
-		if (ops[i].cb != NULL) {
-			if (ops[i].mask_arg0 != 0) {
-				/* Two arguments */
-				ops[i].cb((op & ops[i].mask_arg0) >> ops[i].shift_arg0, op & ~(ops[i].mask | ops[i].mask_arg0));
-			} else {
-				/* One arguments */
-				ops[i].cb((op & ~ops[i].mask) >> ops[i].shift_arg0, 0);
-			}
-		}
-
-		/* Prepare for the next instruction */
-		pc = next_pc;
-		previous_cycles = ops[i].cycles;
-
-		if (i != 0) {
-			/* OP code is not PSET, reset NP */
-			np = (pc >> 8) & 0x1F;
-		}
-	} else {
-		/* Wait at least once for the duration of a HALT and as long as required
-		 * (to increment the tick counter), but make sure there will be no wait once
-		 * the CPU is restarted
-		 */
-		ref_ts = wait_for_cycles(ref_ts, 5);
-		previous_cycles = 0;
-	}
-
 	/* Handle timers using the internal tick counter */
 	if (tick_counter - clk_timer_2hz_timestamp >= TIMER_2HZ_PERIOD) {
 		do {
@@ -1992,6 +1890,113 @@ int cpu_step(void)
 			}
 		} while (tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD);
 	}
+}
+
+void cpu_reset(void)
+{
+	u13_t i;
+
+	/* Registers and variables init */
+	pc = TO_PC(0, 1, 0x00); // PC starts at bank 0, page 1, step 0
+	np = TO_NP(0, 1); // NP starts at page 1
+	a = 0; // undef
+	b = 0; // undef
+	x = 0; // undef
+	y = 0; // undef
+	sp = 0; // undef
+	flags = 0;
+
+	/* Init RAM to zeros */
+	for (i = 0; i < MEM_BUFFER_SIZE; i++) {
+		memory[i] = 0;
+	}
+
+	SET_IO_MEMORY(memory, REG_R40_R43_BZ_OUTPUT_PORT, 0xF); // Output port (R40-R43)
+	SET_IO_MEMORY(memory, REG_LCD_CTRL, 0x8); // LCD control
+	SET_IO_MEMORY(memory, REG_K00_K03_INPUT_RELATION, 0xF); // Active high
+
+	cpu_frequency = OSC1_FREQUENCY;
+
+	cpu_sync_ref_timestamp();
+}
+
+bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
+{
+	g_program = program;
+	g_breakpoints = breakpoints;
+	ts_freq = freq;
+
+	cpu_reset();
+
+	return 0;
+}
+
+void cpu_release(void)
+{
+}
+
+int cpu_step(void)
+{
+	u12_t op;
+	u8_t i;
+	breakpoint_t *bp = g_breakpoints;
+	static u8_t previous_cycles = 0;
+
+	if (!cpu_halted) {
+		op = g_program[pc];
+
+		/* Lookup the OP code */
+		for (i = 0; ops[i].log != NULL; i++) {
+			if ((op & ops[i].mask) == ops[i].code) {
+				break;
+			}
+		}
+
+		if (ops[i].log == NULL) {
+			g_hal->log(LOG_ERROR, "Unknown op-code 0x%X (pc = 0x%04X)\n", op, pc);
+			return 1;
+		}
+
+		next_pc = (pc + 1) & 0x1FFF;
+
+		/* Display the operation along with the current state of the processor */
+		print_state(i, op, pc);
+
+		/* Match the speed of the real processor
+		* NOTE: For better accuracy, the final wait should happen here, however
+		* the downside is that all interrupts will likely be delayed by one OP
+		*/
+		ref_ts = wait_for_cycles(ref_ts, previous_cycles);
+
+		/* Process the OP code */
+		if (ops[i].cb != NULL) {
+			if (ops[i].mask_arg0 != 0) {
+				/* Two arguments */
+				ops[i].cb((op & ops[i].mask_arg0) >> ops[i].shift_arg0, op & ~(ops[i].mask | ops[i].mask_arg0));
+			} else {
+				/* One arguments */
+				ops[i].cb((op & ~ops[i].mask) >> ops[i].shift_arg0, 0);
+			}
+		}
+
+		/* Prepare for the next instruction */
+		pc = next_pc;
+		previous_cycles = ops[i].cycles;
+
+		if (i != 0) {
+			/* OP code is not PSET, reset NP */
+			np = (pc >> 8) & 0x1F;
+		}
+	} else {
+		/* Wait at least once for the duration of a HALT and as long as required
+		 * (to increment the tick counter), but make sure there will be no wait once
+		 * the CPU is restarted
+		 */
+		ref_ts = wait_for_cycles(ref_ts, 5);
+		previous_cycles = 0;
+	}
+
+	handle_timers();
 
 	/* Check if there is any pending interrupt */
 	if (I && i != 0 && i != 58) { // Do not process interrupts after a PSET or EI operation
