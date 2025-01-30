@@ -171,7 +171,10 @@ typedef struct {
 	u4_t *flags;
 
 	u32_t *tick_counter;
-	u32_t *clk_timer_timestamp;
+	u32_t *clk_timer_1hz_timestamp;
+	u32_t *clk_timer_2hz_timestamp;
+	u32_t *clk_timer_8hz_timestamp;
+	u32_t *clk_timer_32hz_timestamp;
 	u32_t *prog_timer_timestamp;
 	bool_t *prog_timer_enabled;
 	u8_t *prog_timer_data;
