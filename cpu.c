@@ -26,10 +26,13 @@
 #define OSC1_FREQUENCY				TICK_FREQUENCY // Hz
 #define OSC3_FREQUENCY				1000000 // Hz
 
-#define TIMER_1HZ_PERIOD			TICK_FREQUENCY // in ticks
 #define TIMER_2HZ_PERIOD			(TICK_FREQUENCY/2) // in ticks
+#define TIMER_4HZ_PERIOD			(TICK_FREQUENCY/4) // in ticks
 #define TIMER_8HZ_PERIOD			(TICK_FREQUENCY/8) // in ticks
+#define TIMER_16HZ_PERIOD			(TICK_FREQUENCY/16) // in ticks
 #define TIMER_32HZ_PERIOD			(TICK_FREQUENCY/32) // in ticks
+#define TIMER_64HZ_PERIOD			(TICK_FREQUENCY/64) // in ticks
+#define TIMER_128HZ_PERIOD			(TICK_FREQUENCY/128) // in ticks
 #define TIMER_256HZ_PERIOD			(TICK_FREQUENCY/256) // in ticks
 
 #define MASK_4B					0xF00
@@ -185,10 +188,14 @@ static breakpoint_t *g_breakpoints = NULL;
 
 static u32_t call_depth = 0;
 
-static u32_t clk_timer_1hz_timestamp = 0; // in ticks
 static u32_t clk_timer_2hz_timestamp = 0; // in ticks
+static u32_t clk_timer_4hz_timestamp = 0; // in ticks
 static u32_t clk_timer_8hz_timestamp = 0; // in ticks
+static u32_t clk_timer_16hz_timestamp = 0; // in ticks
 static u32_t clk_timer_32hz_timestamp = 0; // in ticks
+static u32_t clk_timer_64hz_timestamp = 0; // in ticks
+static u32_t clk_timer_128hz_timestamp = 0; // in ticks
+static u32_t clk_timer_256hz_timestamp = 0; // in ticks
 static u32_t prog_timer_timestamp = 0; // in ticks
 static bool_t prog_timer_enabled = 0;
 static u8_t prog_timer_data = 0;
@@ -215,10 +222,14 @@ static state_t cpu_state = {
 	.flags = &flags,
 
 	.tick_counter = &tick_counter,
-	.clk_timer_1hz_timestamp = &clk_timer_1hz_timestamp,
 	.clk_timer_2hz_timestamp = &clk_timer_2hz_timestamp,
+	.clk_timer_4hz_timestamp = &clk_timer_4hz_timestamp,
 	.clk_timer_8hz_timestamp = &clk_timer_8hz_timestamp,
+	.clk_timer_16hz_timestamp = &clk_timer_16hz_timestamp,
 	.clk_timer_32hz_timestamp = &clk_timer_32hz_timestamp,
+	.clk_timer_64hz_timestamp = &clk_timer_64hz_timestamp,
+	.clk_timer_128hz_timestamp = &clk_timer_128hz_timestamp,
+	.clk_timer_256hz_timestamp = &clk_timer_256hz_timestamp,
 	.prog_timer_timestamp = &prog_timer_timestamp,
 	.prog_timer_enabled = &prog_timer_enabled,
 	.prog_timer_data = &prog_timer_data,
@@ -392,6 +403,14 @@ static u4_t get_io(u12_t n)
 			/* Input (K10-K13) interrupt masks */
 			return interrupts[INT_K10_K13_SLOT].mask_reg;
 
+		case REG_CLOCK_TIMER_DATA_1:
+			/* Clock timer data (16-128Hz) */
+			return GET_IO_MEMORY(memory, n);
+
+		case REG_CLOCK_TIMER_DATA_2:
+			/* Clock timer data (1-8Hz) */
+			return GET_IO_MEMORY(memory, n);
+
 		case REG_PROG_TIMER_DATA_L:
 			/* Prog timer data (low) */
 			return prog_timer_data & 0xF;
@@ -507,6 +526,16 @@ static void set_io(u12_t n, u4_t v)
 			/* Input (K10-K13) interrupt masks */
 			/* Assume all INT disabled */
 			interrupts[INT_K10_K13_SLOT].mask_reg = v;
+			break;
+
+		case REG_CLOCK_TIMER_DATA_1:
+			/* Write not allowed */
+			/* Clock timer data (16-128Hz) */
+			break;
+
+		case REG_CLOCK_TIMER_DATA_2:
+			/* Write not allowed */
+			/* Clock timer data (1-8Hz) */
 			break;
 
 		case REG_PROG_TIMER_RELOAD_DATA_L:
@@ -1860,20 +1889,32 @@ int cpu_step(void)
 	}
 
 	/* Handle timers using the internal tick counter */
-	if (tick_counter - clk_timer_1hz_timestamp >= TIMER_1HZ_PERIOD) {
-		do {
-			clk_timer_1hz_timestamp += TIMER_1HZ_PERIOD;
-		} while (tick_counter - clk_timer_1hz_timestamp >= TIMER_1HZ_PERIOD);
-
-		generate_interrupt(INT_CLOCK_TIMER_SLOT, 3);
-	}
-
 	if (tick_counter - clk_timer_2hz_timestamp >= TIMER_2HZ_PERIOD) {
 		do {
 			clk_timer_2hz_timestamp += TIMER_2HZ_PERIOD;
 		} while (tick_counter - clk_timer_2hz_timestamp >= TIMER_2HZ_PERIOD);
 
-		generate_interrupt(INT_CLOCK_TIMER_SLOT, 2);
+		/* Update clock timer data for 1Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2) ^ (0x1 << 3));
+
+		/* Generate interrupt on falling edge only (1Hz) */
+		if (!((GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2) >> 3) & 0x1 )) {
+			generate_interrupt(INT_CLOCK_TIMER_SLOT, 3);
+		}
+	}
+
+	if (tick_counter - clk_timer_4hz_timestamp >= TIMER_4HZ_PERIOD) {
+		do {
+			clk_timer_4hz_timestamp += TIMER_4HZ_PERIOD;
+		} while (tick_counter - clk_timer_4hz_timestamp >= TIMER_4HZ_PERIOD);
+
+		/* Update clock timer data for 2Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2) ^ (0x1 << 2));
+
+		/* Generate interrupt on falling edge only (2Hz) */
+		if (!((GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2) >> 2) & 0x1 )) {
+			generate_interrupt(INT_CLOCK_TIMER_SLOT, 2);
+		}
 	}
 
 	if (tick_counter - clk_timer_8hz_timestamp >= TIMER_8HZ_PERIOD) {
@@ -1881,7 +1922,22 @@ int cpu_step(void)
 			clk_timer_8hz_timestamp += TIMER_8HZ_PERIOD;
 		} while (tick_counter - clk_timer_8hz_timestamp >= TIMER_8HZ_PERIOD);
 
-		generate_interrupt(INT_CLOCK_TIMER_SLOT, 1);
+		/* Update clock timer data for 4Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2) ^ (0x1 << 1));
+	}
+
+	if (tick_counter - clk_timer_16hz_timestamp >= TIMER_16HZ_PERIOD) {
+		do {
+			clk_timer_16hz_timestamp += TIMER_16HZ_PERIOD;
+		} while (tick_counter - clk_timer_16hz_timestamp >= TIMER_16HZ_PERIOD);
+
+		/* Update clock timer data for 8Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2) ^ (0x1 << 0));
+
+		/* Generate interrupt on falling edge only (8Hz) */
+		if (!((GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_2) >>0) & 0x1 )) {
+			generate_interrupt(INT_CLOCK_TIMER_SLOT, 1);
+		}
 	}
 
 	if (tick_counter - clk_timer_32hz_timestamp >= TIMER_32HZ_PERIOD) {
@@ -1889,7 +1945,40 @@ int cpu_step(void)
 			clk_timer_32hz_timestamp += TIMER_32HZ_PERIOD;
 		} while (tick_counter - clk_timer_32hz_timestamp >= TIMER_32HZ_PERIOD);
 
-		generate_interrupt(INT_CLOCK_TIMER_SLOT, 0);
+		/* Update clock timer data for 16Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1) ^ (0x1 << 3));
+	}
+
+	if (tick_counter - clk_timer_64hz_timestamp >= TIMER_64HZ_PERIOD) {
+		do {
+			clk_timer_64hz_timestamp += TIMER_64HZ_PERIOD;
+		} while (tick_counter - clk_timer_64hz_timestamp >= TIMER_64HZ_PERIOD);
+
+		/* Update clock timer data for 32Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1) ^ (0x1 << 2));
+
+		/* Generate interrupt on falling edge only (32Hz) */
+		if (!((GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1) >> 2) & 0x1 )) {
+			generate_interrupt(INT_CLOCK_TIMER_SLOT, 0);
+		}
+	}
+
+	if (tick_counter - clk_timer_128hz_timestamp >= TIMER_128HZ_PERIOD) {
+		do {
+			clk_timer_128hz_timestamp += TIMER_128HZ_PERIOD;
+		} while (tick_counter - clk_timer_128hz_timestamp >= TIMER_128HZ_PERIOD);
+
+		/* Update clock timer data for 64Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1) ^ (0x1 << 1));
+	}
+
+	if (tick_counter - clk_timer_256hz_timestamp >= TIMER_256HZ_PERIOD) {
+		do {
+			clk_timer_256hz_timestamp += TIMER_256HZ_PERIOD;
+		} while (tick_counter - clk_timer_256hz_timestamp >= TIMER_256HZ_PERIOD);
+
+		/* Update clock timer data for 128Hz */
+		SET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1, GET_IO_MEMORY(memory, REG_CLOCK_TIMER_DATA_1) ^ (0x1 << 0));
 	}
 
 	if (prog_timer_enabled && tick_counter - prog_timer_timestamp >= TIMER_256HZ_PERIOD) {
