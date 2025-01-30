@@ -444,7 +444,7 @@ static u4_t get_io(u12_t n)
 			break;
 
 		default:
-			g_hal->log(LOG_ERROR,   "Read from unimplemented I/O 0x%03X - PC = 0x%04X\n", n, pc);
+			g_hal->log(LOG_ERROR, "Read from unimplemented I/O 0x%03X - PC = 0x%04X\n", n, pc);
 	}
 
 	return 0;
@@ -578,7 +578,7 @@ static void set_io(u12_t n, u4_t v)
 			break;
 
 		default:
-			g_hal->log(LOG_ERROR,   "Write 0x%X to unimplemented I/O 0x%03X - PC = 0x%04X\n", v, n, pc);
+			g_hal->log(LOG_ERROR, "Write 0x%X to unimplemented I/O 0x%03X - PC = 0x%04X\n", v, n, pc);
 	}
 }
 
@@ -616,7 +616,7 @@ static u4_t get_memory(u12_t n)
 		g_hal->log(LOG_MEMORY, "I/O              - ");
 		res = get_io(n);
 	} else {
-		g_hal->log(LOG_ERROR,   "Read from invalid memory address 0x%03X - PC = 0x%04X\n", n, pc);
+		g_hal->log(LOG_ERROR, "Read from invalid memory address 0x%03X - PC = 0x%04X\n", n, pc);
 		return 0;
 	}
 
@@ -648,7 +648,7 @@ static void set_memory(u12_t n, u4_t v)
 		set_io(n, v);
 		g_hal->log(LOG_MEMORY, "I/O              - ");
 	} else {
-		g_hal->log(LOG_ERROR,   "Write 0x%X to invalid memory address 0x%03X - PC = 0x%04X\n", v, n, pc);
+		g_hal->log(LOG_ERROR, "Write 0x%X to invalid memory address 0x%03X - PC = 0x%04X\n", v, n, pc);
 		return;
 	}
 
