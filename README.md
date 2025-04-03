@@ -10,7 +10,7 @@ So far, it has been successfully implemented on different platforms:
 - STM32F072 MCU based board (check out [MCUGotchi](https://github.com/jcrona/mcugotchi/) for more information).
 - OpenTama which is an STM32L072 MCU based board (check out [OpenTama](https://github.com/Sparkr-tech/opentama) and [MCUGotchi](https://github.com/jcrona/mcugotchi/) for more information).
 - Arduino UNO (check out [ArduinoGotchi](https://github.com/GaryZ88/ArduinoGotchi/) for more information).
-- The R software environment (check out [tamaR](https://github.com/almarch/tamaR/) for more information).
+- A web app powered by Python/JS (check out [Pygotchi](https://github.com/Almarch/pygotchi) for more information).
 
 
 ## Importing TamaLIB
