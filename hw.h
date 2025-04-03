@@ -1,5 +1,5 @@
 /*
- * TamaLIB - A hardware agnostic Tamagotchi P1 emulation library
+ * TamaLIB - A hardware agnostic first-gen Tamagotchi emulation library
  *
  * Copyright (C) 2021 Jean-Christophe Rona <jc@rona.fr>
  *
@@ -36,6 +36,7 @@ typedef enum {
 	BTN_LEFT = 0,
 	BTN_MIDDLE,
 	BTN_RIGHT,
+	BTN_TAP,
 } button_t;
 
 

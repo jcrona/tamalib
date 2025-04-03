@@ -1,5 +1,5 @@
 /*
- * TamaLIB - A hardware agnostic Tamagotchi P1 emulation library
+ * TamaLIB - A hardware agnostic first-gen Tamagotchi emulation library
  *
  * Copyright (C) 2021 Jean-Christophe Rona <jc@rona.fr>
  *
@@ -22,15 +22,21 @@
 #include "hal.h"
 
 /* SEG -> LCD mapping */
-static u8_t seg_pos[40] = {0, 1, 2, 3, 4, 5, 6, 7, 32, 8, 9, 10, 11, 12 ,13 ,14, 15, 33, 34, 35, 31, 30, 29, 28, 27, 26, 25, 24, 36, 23, 22, 21, 20, 19, 18, 17, 16, 37, 38, 39};
-
+#if defined(E0C6S48_SUPPORT)
+/* 51 segments */
+static u8_t seg_pos[MEM_DISPLAY1_SIZE/2] = {0, 1, 2, 3, 4, 5, 6, 7, 32, 8, 9, 10, 11, 12 ,13 ,14, 15, 33, 34, 35, 31, 30, 29, 28, 27, 26, 25, 24, 36, 23, 22, 21, 20, 19, 18, 17, 16, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50};
+#elif defined(E0C6S46_SUPPORT)
+/* 40 segments */
+static u8_t seg_pos[MEM_DISPLAY1_SIZE/2] = {0, 1, 2, 3, 4, 5, 6, 7, 32, 8, 9, 10, 11, 12 ,13 ,14, 15, 33, 34, 35, 31, 30, 29, 28, 27, 26, 25, 24, 36, 23, 22, 21, 20, 19, 18, 17, 16, 37, 38, 39};
+#endif
 
 bool_t hw_init(void)
 {
-	/* Buttons are active LOW */
+	/* Buttons/Tap sensor are active LOW */
 	cpu_set_input_pin(PIN_K00, PIN_STATE_HIGH);
 	cpu_set_input_pin(PIN_K01, PIN_STATE_HIGH);
 	cpu_set_input_pin(PIN_K02, PIN_STATE_HIGH);
+	cpu_set_input_pin(PIN_K03, PIN_STATE_HIGH);
 
 	return 0;
 }
@@ -41,6 +47,7 @@ void hw_release(void)
 
 void hw_set_lcd_pin(u8_t seg, u8_t com, u8_t val)
 {
+	//printf("   hw_set_lcd_pin: seg = %u, com = %u, val = %u\n", seg, com, val);
 	if (seg_pos[seg] < LCD_WIDTH) {
 		g_hal->set_lcd_matrix(seg_pos[seg], com, val);
 	} else {
@@ -68,6 +75,10 @@ void hw_set_button(button_t btn, btn_state_t state)
 	pin_state_t pin_state = (state == BTN_STATE_PRESSED) ? PIN_STATE_LOW : PIN_STATE_HIGH;
 
 	switch (btn) {
+		case BTN_TAP:
+			cpu_set_input_pin(PIN_K03, pin_state);
+			break;
+
 		case BTN_LEFT:
 			cpu_set_input_pin(PIN_K02, pin_state);
 			break;

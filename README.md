@@ -1,17 +1,18 @@
-# TamaLIB - A hardware agnostic Tamagotchi P1 emulation library
+# TamaLIB - A hardware agnostic first-gen Tamagotchi emulation library
 
 
 ## Synopsis
 
-TamaLib is a hardware agnostic Tamagotchi P1 emulation library built from scratch. It is self-contained and aims at running on any platform powerful enough, from microcontrollers (MCUs) to desktop computers, thus spreading virtual life across the digital world.
+TamaLib is a hardware agnostic first-gen Tamagotchi (E0C6S46/8 based) emulation library built from scratch. It is self-contained and aims at running on any platform powerful enough, from microcontrollers (MCUs) to desktop computers, thus spreading virtual life across the digital world.
 
 So far, it has been successfully implemented on different platforms:
 - Desktop computers (check out [TamaTool](https://github.com/jcrona/tamatool/) for more information) 
 - STM32F072 MCU based board (check out [MCUGotchi](https://github.com/jcrona/mcugotchi/) for more information).
 - OpenTama which is an STM32L072 MCU based board (check out [OpenTama](https://github.com/Sparkr-tech/opentama) and [MCUGotchi](https://github.com/jcrona/mcugotchi/) for more information).
 - Arduino UNO (check out [ArduinoGotchi](https://github.com/GaryZ88/ArduinoGotchi/) for more information).
-- The R software environment (check out [tamaR](https://github.com/almarch/tamaR/) for more information).
+- A web app powered by Python/JS (check out [Pygotchi](https://github.com/Almarch/pygotchi) for more information).
 - Palm OS (check out [TamagotchiPalmOS](https://github.com/JOBBIN9422/TamagotchiPalmOS) for more information).
+
 
 ## Importing TamaLIB
 
@@ -56,11 +57,9 @@ TamaLIB is distributed under the GPLv2 license. See the LICENSE file for more in
 
 ## Hardware information
 
-The Tamagotchi P1 is based on an
-[E0C6S46 Epson MCU](https://download.epson-europe.com/pub/electronics-de/asmic/4bit/62family/technicalmanual/tm_6s46.pdf),
-and runs at 32,768 kHz. Its LCD is 32x16 B/W pixels, with 8 icons.
-To my knowledge, the ROM available online has been extracted from a high-res picture of a die. The ROM mask was clear enough to be optically read. The pictures can be seen [there](https://siliconpr0n.org/map/bandai/tamagotchi-v1/) (thx asterick for the link !).  
-I would love to see the same work done on a P2 and add support for it in TamaLIB/TamaTool !
+The Tamagotchi P1 and P2 are based on an [E0C6S46 Epson MCU](https://download.epson-europe.com/pub/electronics-de/asmic/4bit/62family/technicalmanual/tm_6s46.pdf), and runs at 32,768 kHz, while the Tamagotchi Angel, Umino (Ocean), Morino (Forest), Mothra, Tamaotch and Genjintch are based on an [E0C6S48 Epson MCU](https://download.epson-europe.com/pub/electronics-de/asmic/4bit/62family/technicalmanual/tm_6s48.pdf) running at 32,768 kHz and 1 MHz. Their LCDs are all 32x16 B/W pixels, with 8 icons. 
+To my knowledge, the P1 ROM available online has been extracted from a high-res picture of a die. The ROM mask was clear enough to be optically read. The pictures can be seen [there](https://siliconpr0n.org/map/bandai/tamagotchi-v1/) (thx asterick for the link!).  
+~~I would love to see the same work done on a P2 and add support for it in TamaLIB/TamaTool!~~ Someone did the same job for the P2 and other first-gen devices!
 
 __  
-Copyright (C) 2021 Jean-Christophe Rona
+Copyright (C) 2025 Jean-Christophe Rona
