@@ -12,6 +12,7 @@ So far, it has been successfully implemented on different platforms:
 - Arduino UNO (check out [ArduinoGotchi](https://github.com/GaryZ88/ArduinoGotchi/) for more information).
 - A web app powered by Python/JS (check out [Pygotchi](https://github.com/Almarch/pygotchi) for more information).
 - Palm OS (check out [TamagotchiPalmOS](https://github.com/JOBBIN9422/TamagotchiPalmOS) for more information).
+- M5Stack Cardputer (check out [Tamaputer](https://github.com/mindovermiles262/tamaputer) for more information).
 
 
 ## Importing TamaLIB
