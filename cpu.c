@@ -1938,7 +1938,10 @@ void cpu_release(void)
 int cpu_step(void)
 {
 	u12_t op;
-	u8_t i;
+	/* Initialised because the halted path below skips the decode loop but the
+	 * interrupt gate further down still reads i. Any value other than the PSET
+	 * and EI indices will do; i is not used to index ops[] on that path. */
+	u8_t i = 0xFF;
 	breakpoint_t *bp = g_breakpoints;
 	static u8_t previous_cycles = 0;
 
