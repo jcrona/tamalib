@@ -513,13 +513,13 @@ static void set_io(u12_t n, u4_t v)
 		case REG_SERIAL_INT_MASKS:
 			/* Serial interface interrupt masks */
 			/* Assume all INT disabled */
-			interrupts[INT_K10_K13_SLOT].mask_reg = v;
+			interrupts[INT_SERIAL_SLOT].mask_reg = v;
 			break;
 
 		case REG_K00_K03_INT_MASKS:
 			/* Input (K00-K03) interrupt masks */
 			/* Assume all INT disabled */
-			interrupts[INT_SERIAL_SLOT].mask_reg = v;
+			interrupts[INT_K00_K03_SLOT].mask_reg = v;
 			break;
 
 		case REG_K10_K13_INT_MASKS:
