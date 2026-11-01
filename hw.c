@@ -55,7 +55,7 @@ void hw_set_lcd_pin(u8_t seg, u8_t com, u8_t val)
 		 * IC n -> seg-com|...
 		 * IC 0 ->  8-0 |18-3 |19-2
 		 * IC 1 ->  8-1 |17-0 |19-3
-		 * IC 2 ->  8-2 |17-1 |37-12|38-13|39-14
+		 * IC 2 ->  8-2 |17-1 |18-0 |37-12|38-13|39-14
 		 * IC 3 ->  8-3 |17-2 |18-1 |19-0
 		 * IC 4 -> 28-12|37-13|38-14|39-15
 		 * IC 5 -> 28-13|37-14|38-15
@@ -66,6 +66,18 @@ void hw_set_lcd_pin(u8_t seg, u8_t com, u8_t val)
 			g_hal->set_lcd_icon(com, val);
 		} else if (seg == 28 && com >= 12) {
 			g_hal->set_lcd_icon(com - 8, val);
+		} else if (seg == 17 && com == 0) {
+			g_hal->set_lcd_icon(1, val);
+		} else if (seg == 18 && com == 0) {
+			g_hal->set_lcd_icon(2, val);
+		} else if (seg == 19 && com == 0) {
+			g_hal->set_lcd_icon(3, val);
+		} else if (seg == 39 && com == 15) {
+			g_hal->set_lcd_icon(4, val);
+		} else if (seg == 38 && com == 15) {
+			g_hal->set_lcd_icon(5, val);
+		} else if (seg == 37 && com == 15) {
+			g_hal->set_lcd_icon(6, val);
 		}
 	}
 }
